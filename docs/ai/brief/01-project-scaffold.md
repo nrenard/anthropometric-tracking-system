@@ -62,5 +62,6 @@ src/
 ## References
 
 - `spec.md` — full project specification
-- `02-authentication.md` — next brief in sequence
-- `03-profile-management.md` — depends on this scaffold
+- `docs/ai/brief/02-data-models.md` — next brief in sequence (data models)
+- `docs/ai/brief/03-multi-profile-support.md` — depends on data models
+- `docs/ai/brief/04-authentication.md` — auth guard depends on this scaffold

@@ -55,5 +55,5 @@ A working Next.js application bootstrapped with TypeScript, App Router, Chakra U
 
 - `spec.md` — full project specification
 - `docs/ai/brief/01-project-scaffold.md` — source brief
-- `docs/ai/brief/02-authentication.md` — next brief (auth guard depends on this scaffold)
-- `docs/ai/brief/03-profile-management.md` — depends on this scaffold
+- `docs/ai/brief/02-data-models.md` — next brief (data models required for all features)
+- `docs/ai/brief/04-authentication.md` — auth guard depends on this scaffold

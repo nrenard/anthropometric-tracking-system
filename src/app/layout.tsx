@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { Provider } from "@/components/ui/provider"
 import { StartupRunner } from "@/components/startup-runner"
+import { ProfileProvider } from "@/lib/profile-context"
 
 export const metadata: Metadata = {
   title: "Anthropometric Tracking",
@@ -13,7 +14,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <Provider>
           <StartupRunner />
-          {children}
+          <ProfileProvider>{children}</ProfileProvider>
         </Provider>
       </body>
     </html>
