@@ -61,5 +61,11 @@ export const measurementInputSchema = z.object({
   diameters: diametersSchema,
 })
 
+export const measurementCreateSchema = measurementInputSchema.extend({
+  profileId: z.string().min(1),
+  measuredAt: z.coerce.date().default(() => new Date()),
+})
+
 export type ProfileInput = z.infer<typeof profileSchema>
 export type MeasurementInput = z.infer<typeof measurementInputSchema>
+export type MeasurementCreateInput = z.infer<typeof measurementCreateSchema>
