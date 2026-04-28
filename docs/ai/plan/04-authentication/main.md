@@ -32,7 +32,7 @@ Add single-user login with bcrypt password verification and iron-session httpOnl
 > Work through the steps in order. After completing a step, mark its checkbox, commit using the suggested message, then move to the next step. Do not skip ahead unless the step explicitly says it is optional.
 
 - [x] **01** — Env & Session Setup → [`01-env-and-session-setup.md`](./01-env-and-session-setup.md)
-- [ ] **02** — Password Hash Utility → [`02-password-hash-utility.md`](./02-password-hash-utility.md)
+- [x] **02** — Password Hash Utility → [`02-password-hash-utility.md`](./02-password-hash-utility.md)
 - [ ] **03** — Login API Route → [`03-login-api-route.md`](./03-login-api-route.md)
 - [ ] **04** — Logout API Route → [`04-logout-api-route.md`](./04-logout-api-route.md)
 - [ ] **05** — Route Protection Middleware → [`05-route-protection-middleware.md`](./05-route-protection-middleware.md)
