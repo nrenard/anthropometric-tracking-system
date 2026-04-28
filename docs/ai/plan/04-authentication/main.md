@@ -33,18 +33,18 @@ Add single-user login with bcrypt password verification and iron-session httpOnl
 
 - [x] **01** — Env & Session Setup → [`01-env-and-session-setup.md`](./01-env-and-session-setup.md)
 - [x] **02** — Password Hash Utility → [`02-password-hash-utility.md`](./02-password-hash-utility.md)
-- [ ] **03** — Login API Route → [`03-login-api-route.md`](./03-login-api-route.md)
-- [ ] **04** — Logout API Route → [`04-logout-api-route.md`](./04-logout-api-route.md)
-- [ ] **05** — Route Protection Middleware → [`05-route-protection-middleware.md`](./05-route-protection-middleware.md)
-- [ ] **06** — Login Page → [`06-login-page.md`](./06-login-page.md)
+- [x] **03** — Login API Route → [`03-login-api-route.md`](./03-login-api-route.md)
+- [x] **04** — Logout API Route → [`04-logout-api-route.md`](./04-logout-api-route.md)
+- [x] **05** — Route Protection Middleware → [`05-route-protection-middleware.md`](./05-route-protection-middleware.md)
+- [x] **06** — Login Page → [`06-login-page.md`](./06-login-page.md)
 
 ## Done when
 
-- [ ] Every step above is checked off
-- [ ] All acceptance criteria from the source brief pass
-- [ ] `npm test` is green
-- [ ] `npm run lint` is green
-- [ ] `npm run build` succeeds
+- [x] Every step above is checked off
+- [x] All acceptance criteria from the source brief pass
+- [x] `npm test` is green
+- [x] `npm run lint` is green
+- [x] `npm run build` succeeds
 
 ## References
 
