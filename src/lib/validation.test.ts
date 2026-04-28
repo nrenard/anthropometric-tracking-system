@@ -6,6 +6,7 @@ import {
   diametersSchema,
   measurementSchema,
   measurementInputSchema,
+  measurementCreateSchema,
 } from "@/lib/validation"
 
 describe("profileSchema", () => {
@@ -266,11 +267,19 @@ describe("measurementSchema", () => {
     expect(result.success).toBe(false)
   })
 
-  it("rejects missing skinfolds", () => {
+  it("accepts missing skinfolds (optional sub-object)", () => {
     const result = measurementSchema.safeParse(
       Object.fromEntries(Object.entries(validInput).filter(([k]) => k !== "skinfolds"))
     )
-    expect(result.success).toBe(false)
+    expect(result.success).toBe(true)
+  })
+
+  it("accepts a measurement with only weight and measuredAt", () => {
+    const result = measurementSchema.safeParse({
+      measuredAt: new Date("2026-01-15T08:00:00Z"),
+      weight: 70,
+    })
+    expect(result.success).toBe(true)
   })
 
   it("rejects invalid subdocument", () => {
@@ -335,5 +344,63 @@ describe("measurementInputSchema", () => {
     if (result.success) {
       expect(result.data.measuredAt).toEqual(date)
     }
+  })
+
+  it("accepts a partial measurement with only weight", () => {
+    const result = measurementInputSchema.safeParse({ weight: 70 })
+    expect(result.success).toBe(true)
+  })
+
+  it("accepts skinfolds without perimeters or diameters", () => {
+    const result = measurementInputSchema.safeParse({
+      weight: 70,
+      skinfolds: validInput.skinfolds,
+    })
+    expect(result.success).toBe(true)
+  })
+})
+
+describe("measurementCreateSchema", () => {
+  it("accepts a measurement with only profileId, weight, and measuredAt", () => {
+    const result = measurementCreateSchema.safeParse({
+      profileId: "111111111111111111111111",
+      weight: 70,
+      measuredAt: new Date("2026-01-15T08:00:00Z"),
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it("accepts a measurement with only profileId and weight (measuredAt defaults)", () => {
+    const result = measurementCreateSchema.safeParse({
+      profileId: "111111111111111111111111",
+      weight: 70,
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.measuredAt).toBeInstanceOf(Date)
+    }
+  })
+
+  it("rejects when weight is missing", () => {
+    const result = measurementCreateSchema.safeParse({
+      profileId: "111111111111111111111111",
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it("rejects when profileId is missing", () => {
+    const result = measurementCreateSchema.safeParse({
+      weight: 70,
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it("still validates skinfolds shape when provided", () => {
+    const result = measurementCreateSchema.safeParse({
+      profileId: "111111111111111111111111",
+      weight: 70,
+      skinfolds: { chest: 10 },
+    })
+    expect(result.success).toBe(false)
   })
 })

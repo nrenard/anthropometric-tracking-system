@@ -101,7 +101,7 @@ export function ageAtDate(dateOfBirth: Date, measuredAt: Date): number {
   return age
 }
 
-interface MeasurementInput {
+export interface MeasurementInput {
   measuredAt: Date
   weight: number
   height: number
@@ -128,7 +128,7 @@ interface MeasurementInput {
   }
 }
 
-interface ProfileInput {
+export interface ProfileInput {
   name: string
   email: string
   dateOfBirth: Date

@@ -50,10 +50,10 @@ const measurementSchema = new Schema(
     measuredAt: { type: Date, required: true },
     notes: { type: String, required: false },
     weight: { type: Number, required: true, min: 0 },
-    height: { type: Number, required: true, min: 0 },
-    skinfolds: { type: SkinfoldsSchema, required: true },
-    perimeters: { type: PerimetersSchema, required: true },
-    diameters: { type: DiametersSchema, required: true },
+    height: { type: Number, required: false, min: 0 },
+    skinfolds: { type: SkinfoldsSchema, required: false },
+    perimeters: { type: PerimetersSchema, required: false },
+    diameters: { type: DiametersSchema, required: false },
   },
   { timestamps: true }
 )
@@ -65,8 +65,8 @@ interface IMeasurement extends Document {
   measuredAt: Date
   notes?: string
   weight: number
-  height: number
-  skinfolds: {
+  height?: number
+  skinfolds?: {
     chest: number
     midaxillary: number
     triceps: number
@@ -75,7 +75,7 @@ interface IMeasurement extends Document {
     suprailiac: number
     thigh: number
   }
-  perimeters: {
+  perimeters?: {
     neck: number
     waist: number
     hip: number
@@ -86,7 +86,7 @@ interface IMeasurement extends Document {
     thigh: { left: number; right: number }
     calf: { left: number; right: number }
   }
-  diameters: { humerus: number; femur: number }
+  diameters?: { humerus: number; femur: number }
   createdAt: Date
   updatedAt: Date
 }

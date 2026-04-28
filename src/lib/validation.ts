@@ -44,10 +44,10 @@ export const measurementSchema = z.object({
   measuredAt: z.date(),
   notes: z.string().optional(),
   weight: z.number().positive().max(700),
-  height: z.number().positive().max(300),
-  skinfolds: skinFoldsSchema,
-  perimeters: perimetersSchema,
-  diameters: diametersSchema,
+  height: z.number().positive().max(300).optional(),
+  skinfolds: skinFoldsSchema.optional(),
+  perimeters: perimetersSchema.optional(),
+  diameters: diametersSchema.optional(),
 })
 
 export const measurementInputSchema = z.object({
@@ -55,10 +55,10 @@ export const measurementInputSchema = z.object({
   measuredAt: z.date().default(() => new Date()),
   notes: z.string().optional(),
   weight: z.number().positive().max(700),
-  height: z.number().positive().max(300),
-  skinfolds: skinFoldsSchema,
-  perimeters: perimetersSchema,
-  diameters: diametersSchema,
+  height: z.number().positive().max(300).optional(),
+  skinfolds: skinFoldsSchema.optional(),
+  perimeters: perimetersSchema.optional(),
+  diameters: diametersSchema.optional(),
 })
 
 export const measurementCreateSchema = measurementInputSchema.extend({

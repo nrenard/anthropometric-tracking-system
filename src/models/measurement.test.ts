@@ -63,19 +63,35 @@ describe("Measurement model", () => {
     expect(saved.createdAt).toBeInstanceOf(Date)
     expect(saved.updatedAt).toBeInstanceOf(Date)
 
-    expect(saved.skinfolds.chest).toBe(10)
-    expect(saved.skinfolds.abdominal).toBe(20)
-    expect(saved.skinfolds.thigh).toBe(14)
+    expect(saved.skinfolds?.chest).toBe(10)
+    expect(saved.skinfolds?.abdominal).toBe(20)
+    expect(saved.skinfolds?.thigh).toBe(14)
 
-    expect(saved.perimeters.neck).toBe(38)
-    expect(saved.perimeters.hip).toBe(95)
-    expect(saved.perimeters.arm.left).toBe(32)
-    expect(saved.perimeters.arm.right).toBe(33)
-    expect(saved.perimeters.forearm.left).toBe(27)
-    expect(saved.perimeters.calf.right).toBe(38)
+    expect(saved.perimeters?.neck).toBe(38)
+    expect(saved.perimeters?.hip).toBe(95)
+    expect(saved.perimeters?.arm.left).toBe(32)
+    expect(saved.perimeters?.arm.right).toBe(33)
+    expect(saved.perimeters?.forearm.left).toBe(27)
+    expect(saved.perimeters?.calf.right).toBe(38)
 
-    expect(saved.diameters.humerus).toBe(7.2)
-    expect(saved.diameters.femur).toBe(10.1)
+    expect(saved.diameters?.humerus).toBe(7.2)
+    expect(saved.diameters?.femur).toBe(10.1)
+  })
+
+  it("saves a partial measurement with only weight, profileId, measuredAt", async () => {
+    const doc = new Measurement({
+      profileId,
+      measuredAt: new Date("2026-01-15T08:00:00Z"),
+      weight: 70,
+    })
+    const saved = await doc.save()
+
+    expect(saved._id).toBeDefined()
+    expect(saved.weight).toBe(70)
+    expect(saved.height).toBeUndefined()
+    expect(saved.skinfolds).toBeUndefined()
+    expect(saved.perimeters).toBeUndefined()
+    expect(saved.diameters).toBeUndefined()
   })
 
   it("rejects missing required top-level fields", async () => {
@@ -164,9 +180,9 @@ describe("Measurement model", () => {
     const doc = new Measurement(withoutOptional)
     const saved = await doc.save()
 
-    expect(saved.perimeters.abdomen).toBeUndefined()
-    expect(saved.perimeters.chest).toBeUndefined()
-    expect(saved.perimeters.neck).toBe(38)
+    expect(saved.perimeters?.abdomen).toBeUndefined()
+    expect(saved.perimeters?.chest).toBeUndefined()
+    expect(saved.perimeters?.neck).toBe(38)
   })
 
   it("rejects missing diameters", async () => {
