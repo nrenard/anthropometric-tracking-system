@@ -6,8 +6,10 @@ import MedirPage from "./page"
 import type { ProfileDTO } from "@/app/actions/profile-actions"
 
 const pushMock = vi.fn()
+const searchParamsRef = { current: new URLSearchParams() }
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: pushMock, replace: vi.fn(), back: vi.fn() }),
+  useSearchParams: () => searchParamsRef.current,
 }))
 
 const sampleProfile = (overrides: Partial<ProfileDTO> = {}): ProfileDTO => ({
@@ -54,6 +56,7 @@ function renderPage() {
 beforeEach(() => {
   cleanup()
   pushMock.mockReset()
+  searchParamsRef.current = new URLSearchParams()
   document.cookie
     .split(";")
     .map((c) => c.trim().split("=")[0])
@@ -246,6 +249,137 @@ describe("MedirPage shell", () => {
         expect(fetchMock).toHaveBeenCalled()
       })
       expect(pushMock).not.toHaveBeenCalled()
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+})
+
+describe("MedirPage edit mode", () => {
+  const editMeasurementId = "aaaaaaaaaaaaaaaaaaaaaaaa"
+  const measurementDoc = {
+    _id: editMeasurementId,
+    profileId: "111111111111111111111111",
+    measuredAt: new Date("2026-02-10T08:00:00Z").toISOString(),
+    notes: "Manhã em jejum",
+    weight: 72.4,
+    height: 178,
+  }
+
+  function mockGetMeasurement(doc: unknown, status = 200) {
+    return vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input.toString()
+      if (url === `/api/measurements/${editMeasurementId}`) {
+        return new Response(JSON.stringify(doc), { status })
+      }
+      return new Response("{}", { status: 200 })
+    })
+  }
+
+  it("renders the edit title when edit query param is present", async () => {
+    searchParamsRef.current = new URLSearchParams(`edit=${editMeasurementId}`)
+    const fetchMock = mockGetMeasurement(measurementDoc)
+    vi.stubGlobal("fetch", fetchMock)
+    try {
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText(/Editar Medição/i)).toBeDefined()
+      })
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it("fetches measurement and pre-populates fields from the edit query param", async () => {
+    searchParamsRef.current = new URLSearchParams(`edit=${editMeasurementId}`)
+    const fetchMock = mockGetMeasurement(measurementDoc)
+    vi.stubGlobal("fetch", fetchMock)
+    try {
+      renderPage()
+      await waitFor(() => {
+        expect(fetchMock).toHaveBeenCalledWith(`/api/measurements/${editMeasurementId}`)
+      })
+      await waitFor(() => {
+        const weight = screen.getByLabelText(/Peso/i) as HTMLInputElement
+        expect(weight.value).toBe("72.4")
+      })
+      const height = screen.getByLabelText(/Altura/i) as HTMLInputElement
+      expect(height.value).toBe("178")
+      const notes = screen.getByLabelText(/Observa/i) as HTMLTextAreaElement
+      expect(notes.value).toBe("Manhã em jejum")
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it("submits PUT to /api/measurements/[id] in edit mode", async () => {
+    searchParamsRef.current = new URLSearchParams(`edit=${editMeasurementId}`)
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === "string" ? input : input.toString()
+      if (url === `/api/measurements/${editMeasurementId}` && (!init || !init.method || init.method === "GET")) {
+        return new Response(JSON.stringify(measurementDoc), { status: 200 })
+      }
+      if (url === `/api/measurements/${editMeasurementId}` && init?.method === "PUT") {
+        return new Response(JSON.stringify({ ...measurementDoc }), { status: 200 })
+      }
+      return new Response("{}", { status: 200 })
+    })
+    vi.stubGlobal("fetch", fetchMock)
+    try {
+      renderPage()
+      await waitFor(() => {
+        const weight = screen.getByLabelText(/Peso/i) as HTMLInputElement
+        expect(weight.value).toBe("72.4")
+      })
+      const nextButton = screen.getByRole("button", { name: /Próximo/i })
+      for (let i = 0; i < 4; i++) {
+        await act(async () => {
+          nextButton.click()
+        })
+      }
+      const save = await screen.findByRole("button", { name: /Salvar/i })
+      await act(async () => {
+        save.click()
+      })
+
+      await waitFor(() => {
+        const putCall = fetchMock.mock.calls.find(
+          ([, init]) => (init as RequestInit | undefined)?.method === "PUT",
+        )
+        expect(putCall).toBeDefined()
+      })
+      const putCall = fetchMock.mock.calls.find(
+        ([, init]) => (init as RequestInit | undefined)?.method === "PUT",
+      )!
+      expect(putCall[0]).toBe(`/api/measurements/${editMeasurementId}`)
+      const body = JSON.parse((putCall[1] as RequestInit).body as string) as {
+        weight: number
+        profileId?: string
+      }
+      expect(body.weight).toBe(72.4)
+      expect(body.profileId).toBeUndefined()
+
+      await waitFor(() => {
+        expect(pushMock).toHaveBeenCalled()
+      })
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it("falls back to create mode when measurement is not found", async () => {
+    searchParamsRef.current = new URLSearchParams(`edit=bbbbbbbbbbbbbbbbbbbbbbbb`)
+    const fetchMock = vi.fn(async () =>
+      new Response(JSON.stringify({ error: "Medição não encontrada" }), { status: 404 }),
+    )
+    vi.stubGlobal("fetch", fetchMock)
+    try {
+      renderPage()
+      await waitFor(() => {
+        expect(screen.getByText(/Nova medição/i)).toBeDefined()
+      })
+      const weight = screen.getByLabelText(/Peso/i) as HTMLInputElement
+      expect(weight.value).toBe("")
     } finally {
       vi.unstubAllGlobals()
     }

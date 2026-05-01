@@ -290,4 +290,115 @@ describe("useMeasurementWizard", () => {
     expect(result.current.errors.weight).toBeUndefined()
     expect(result.current.step).toBe(2)
   })
+
+  describe("edit mode", () => {
+    const fullMeasurement = {
+      _id: "aaaaaaaaaaaaaaaaaaaaaaaa",
+      profileId: "111111111111111111111111",
+      measuredAt: new Date("2026-02-10T08:00:00Z").toISOString(),
+      notes: "Manhã em jejum",
+      weight: 72.4,
+      height: 178,
+      skinfolds: {
+        chest: 10,
+        midaxillary: 8,
+        triceps: 12,
+        subscapular: 15,
+        abdominal: 20,
+        suprailiac: 18,
+        thigh: 14,
+      },
+      perimeters: {
+        neck: 38,
+        waist: 80,
+        hip: 95,
+        abdomen: 82,
+        chest: 100,
+        arm: { left: 32, right: 33 },
+        forearm: { left: 27, right: 28 },
+        thigh: { left: 55, right: 56 },
+        calf: { left: 37, right: 38 },
+      },
+      diameters: { humerus: 7.2, femur: 10.1 },
+    }
+
+    it("isEditMode is false and editMeasurementId is null by default", () => {
+      const { result } = renderHook(() => useMeasurementWizard())
+      expect(result.current.isEditMode).toBe(false)
+      expect(result.current.editMeasurementId).toBeNull()
+    })
+
+    it("initFromMeasurement populates all wizard data fields from a measurement", () => {
+      const { result } = renderHook(() => useMeasurementWizard())
+      act(() => {
+        result.current.initFromMeasurement(fullMeasurement)
+      })
+      expect(result.current.data.weight).toBe("72.4")
+      expect(result.current.data.height).toBe("178")
+      expect(result.current.data.notes).toBe("Manhã em jejum")
+      expect(result.current.data.measuredAt).toBe("2026-02-10")
+      expect(result.current.data["skinfolds.chest"]).toBe("10")
+      expect(result.current.data["skinfolds.thigh"]).toBe("14")
+      expect(result.current.data["perimeters.neck"]).toBe("38")
+      expect(result.current.data["perimeters.abdomen"]).toBe("82")
+      expect(result.current.data["perimeters.arm.left"]).toBe("32")
+      expect(result.current.data["perimeters.calf.right"]).toBe("38")
+      expect(result.current.data["diameters.humerus"]).toBe("7.2")
+      expect(result.current.data["diameters.femur"]).toBe("10.1")
+    })
+
+    it("initFromMeasurement leaves missing optional sections as empty strings", () => {
+      const { result } = renderHook(() => useMeasurementWizard())
+      act(() => {
+        result.current.initFromMeasurement({
+          _id: "aaaaaaaaaaaaaaaaaaaaaaaa",
+          profileId: "111111111111111111111111",
+          measuredAt: new Date("2026-02-10T08:00:00Z").toISOString(),
+          weight: 70,
+        })
+      })
+      expect(result.current.data.weight).toBe("70")
+      expect(result.current.data.height).toBe("")
+      expect(result.current.data.notes).toBe("")
+      expect(result.current.data["skinfolds.chest"]).toBe("")
+      expect(result.current.data["perimeters.neck"]).toBe("")
+      expect(result.current.data["perimeters.abdomen"]).toBe("")
+      expect(result.current.data["diameters.humerus"]).toBe("")
+    })
+
+    it("initFromMeasurement sets isEditMode to true and exposes editMeasurementId", () => {
+      const { result } = renderHook(() => useMeasurementWizard())
+      act(() => {
+        result.current.initFromMeasurement(fullMeasurement)
+      })
+      expect(result.current.isEditMode).toBe(true)
+      expect(result.current.editMeasurementId).toBe("aaaaaaaaaaaaaaaaaaaaaaaa")
+    })
+
+    it("initFromMeasurement marks all steps as reachable so user can navigate freely", () => {
+      const { result } = renderHook(() => useMeasurementWizard())
+      act(() => {
+        result.current.initFromMeasurement(fullMeasurement)
+      })
+      act(() => {
+        result.current.goTo(5)
+      })
+      expect(result.current.step).toBe(5)
+    })
+
+    it("reset() clears state back to defaults and exits edit mode", () => {
+      const { result } = renderHook(() => useMeasurementWizard())
+      act(() => {
+        result.current.initFromMeasurement(fullMeasurement)
+      })
+      expect(result.current.isEditMode).toBe(true)
+      act(() => {
+        result.current.reset()
+      })
+      expect(result.current.isEditMode).toBe(false)
+      expect(result.current.editMeasurementId).toBeNull()
+      expect(result.current.data.weight).toBe("")
+      expect(result.current.step).toBe(1)
+    })
+  })
 })

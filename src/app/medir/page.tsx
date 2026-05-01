@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Box, Button, Flex, Heading, Spinner, Stack, Steps, Text } from "@chakra-ui/react"
 import { BottomNav } from "@/components/bottom-nav"
 import { MeasurementStepBasic } from "@/components/measurement-step-basic"
@@ -11,7 +11,11 @@ import { MeasurementStepDiameters } from "@/components/measurement-step-diameter
 import { MeasurementStepReview } from "@/components/measurement-step-review"
 import { toaster } from "@/components/ui/toaster"
 import { useActiveProfile } from "@/hooks/use-active-profile"
-import { useMeasurementWizard, type WizardStep } from "@/hooks/use-measurement-wizard"
+import {
+  useMeasurementWizard,
+  type MeasurementForEdit,
+  type WizardStep,
+} from "@/hooks/use-measurement-wizard"
 
 const STEP_LABELS: Record<WizardStep, string> = {
   1: "Básico",
@@ -31,19 +35,62 @@ const STEP_ITEMS = [
 
 const SAVE_ERROR_MESSAGE = "Não foi possível salvar a medição"
 const SAVE_SUCCESS_MESSAGE = "Medição salva com sucesso"
+const LOAD_ERROR_MESSAGE = "Não foi possível carregar a medição para edição"
 
 export default function MedirPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const editId = searchParams?.get("edit") ?? null
   const { activeProfile, activeProfileId, isLoading } = useActiveProfile()
-  const { step, data, errors, hasData, setField, next, prev, getSavePayload } =
-    useMeasurementWizard()
+  const {
+    step,
+    data,
+    errors,
+    hasData,
+    isEditMode,
+    editMeasurementId,
+    setField,
+    next,
+    prev,
+    getSavePayload,
+    initFromMeasurement,
+  } = useMeasurementWizard()
   const [isSaving, setIsSaving] = useState(false)
+  const [isLoadingEdit, setIsLoadingEdit] = useState<boolean>(Boolean(editId))
 
   useEffect(() => {
+    if (!editId) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const response = await fetch(`/api/measurements/${editId}`)
+        if (cancelled) return
+        if (!response.ok) {
+          toaster.create({ title: LOAD_ERROR_MESSAGE, type: "error" })
+          return
+        }
+        const doc = (await response.json()) as MeasurementForEdit
+        if (cancelled) return
+        initFromMeasurement(doc)
+      } catch {
+        if (!cancelled) {
+          toaster.create({ title: LOAD_ERROR_MESSAGE, type: "error" })
+        }
+      } finally {
+        if (!cancelled) setIsLoadingEdit(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [editId, initFromMeasurement])
+
+  useEffect(() => {
+    if (isEditMode) return
     if (activeProfile?.defaultHeight && data.height === "") {
       setField("height", String(activeProfile.defaultHeight))
     }
-  }, [activeProfile?.defaultHeight, data.height, setField])
+  }, [activeProfile?.defaultHeight, data.height, setField, isEditMode])
 
   useEffect(() => {
     if (!hasData) return
@@ -64,20 +111,28 @@ export default function MedirPage() {
 
   const isFirst = step === 1
   const isLast = step === 5
-  const disabled = !activeProfileId || isSaving
+  const disabled = (!isEditMode && !activeProfileId) || isSaving
 
   const handleSave = async () => {
-    if (!activeProfileId) {
+    if (!isEditMode && !activeProfileId) {
       toaster.create({ title: SAVE_ERROR_MESSAGE, type: "error" })
       return
     }
     setIsSaving(true)
     try {
-      const payload = { ...getSavePayload(), profileId: activeProfileId }
-      const response = await fetch("/api/measurements", {
-        method: "POST",
+      const savePayload = getSavePayload()
+      const url =
+        isEditMode && editMeasurementId
+          ? `/api/measurements/${editMeasurementId}`
+          : "/api/measurements"
+      const method = isEditMode ? "PUT" : "POST"
+      const body = isEditMode
+        ? savePayload
+        : { ...savePayload, profileId: activeProfileId }
+      const response = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(body),
       })
       if (response.ok) {
         toaster.create({ title: SAVE_SUCCESS_MESSAGE, type: "success" })
@@ -107,7 +162,7 @@ export default function MedirPage() {
     }
   }
 
-  if (isLoading) {
+  if (isLoading || isLoadingEdit) {
     return (
       <Box p={4} pb={32} display="flex" justifyContent="center" alignItems="center" minH="200px">
         <Spinner />
@@ -119,10 +174,10 @@ export default function MedirPage() {
   return (
     <Box p={4} pb={32}>
       <Heading as="h1" size="lg" mb={4}>
-        Nova medição
+        {isEditMode ? "Editar Medição" : "Nova medição"}
       </Heading>
 
-      {!activeProfileId && (
+      {!isEditMode && !activeProfileId && (
         <Box
           bg="yellow.50"
           borderWidth={1}
@@ -199,7 +254,7 @@ export default function MedirPage() {
         <Button
           variant="outline"
           onClick={prev}
-          disabled={isFirst || isSaving || !activeProfileId}
+          disabled={isFirst || isSaving || (!isEditMode && !activeProfileId)}
         >
           Voltar
         </Button>

@@ -152,20 +152,93 @@ export interface WizardSavePayload {
   diameters?: DiametersPayload
 }
 
+export interface MeasurementForEdit {
+  _id?: string
+  id?: string
+  profileId?: string
+  measuredAt?: string | Date
+  notes?: string | null
+  weight?: number | null
+  height?: number | null
+  skinfolds?: SkinfoldsPayload | null
+  perimeters?: PerimetersPayload | null
+  diameters?: DiametersPayload | null
+}
+
 export interface UseMeasurementWizardReturn {
   step: WizardStep
   data: WizardData
   errors: WizardErrors
   hasData: boolean
+  isEditMode: boolean
+  editMeasurementId: string | null
   setField: (field: WizardField, value: string) => void
   next: () => void
   prev: () => void
   goTo: (step: WizardStep) => void
   getSavePayload: () => WizardSavePayload
+  initFromMeasurement: (measurement: MeasurementForEdit) => void
+  reset: () => void
 }
 
 export interface UseMeasurementWizardOptions {
   initialData?: Partial<WizardData>
+}
+
+function numberToFieldString(value: number | null | undefined): string {
+  if (value === null || value === undefined) return ""
+  if (!Number.isFinite(value)) return ""
+  return String(value)
+}
+
+function measuredAtToDateString(value: string | Date | undefined): string {
+  if (!value) return ""
+  const date = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(date.getTime())) return ""
+  return date.toISOString().slice(0, 10)
+}
+
+export function measurementToWizardData(measurement: MeasurementForEdit): WizardData {
+  const data = emptyData()
+  data.weight = numberToFieldString(measurement.weight)
+  data.height = numberToFieldString(measurement.height)
+  data.measuredAt = measuredAtToDateString(measurement.measuredAt)
+  data.notes = measurement.notes ?? ""
+
+  if (measurement.skinfolds) {
+    const sf = measurement.skinfolds
+    data["skinfolds.chest"] = numberToFieldString(sf.chest)
+    data["skinfolds.midaxillary"] = numberToFieldString(sf.midaxillary)
+    data["skinfolds.triceps"] = numberToFieldString(sf.triceps)
+    data["skinfolds.subscapular"] = numberToFieldString(sf.subscapular)
+    data["skinfolds.abdominal"] = numberToFieldString(sf.abdominal)
+    data["skinfolds.suprailiac"] = numberToFieldString(sf.suprailiac)
+    data["skinfolds.thigh"] = numberToFieldString(sf.thigh)
+  }
+
+  if (measurement.perimeters) {
+    const p = measurement.perimeters
+    data["perimeters.neck"] = numberToFieldString(p.neck)
+    data["perimeters.waist"] = numberToFieldString(p.waist)
+    data["perimeters.hip"] = numberToFieldString(p.hip)
+    data["perimeters.abdomen"] = numberToFieldString(p.abdomen)
+    data["perimeters.chest"] = numberToFieldString(p.chest)
+    data["perimeters.arm.left"] = numberToFieldString(p.arm?.left)
+    data["perimeters.arm.right"] = numberToFieldString(p.arm?.right)
+    data["perimeters.forearm.left"] = numberToFieldString(p.forearm?.left)
+    data["perimeters.forearm.right"] = numberToFieldString(p.forearm?.right)
+    data["perimeters.thigh.left"] = numberToFieldString(p.thigh?.left)
+    data["perimeters.thigh.right"] = numberToFieldString(p.thigh?.right)
+    data["perimeters.calf.left"] = numberToFieldString(p.calf?.left)
+    data["perimeters.calf.right"] = numberToFieldString(p.calf?.right)
+  }
+
+  if (measurement.diameters) {
+    data["diameters.humerus"] = numberToFieldString(measurement.diameters.humerus)
+    data["diameters.femur"] = numberToFieldString(measurement.diameters.femur)
+  }
+
+  return data
 }
 
 export function useMeasurementWizard(
@@ -178,6 +251,7 @@ export function useMeasurementWizard(
     ...options.initialData,
   }))
   const [errors, setErrors] = useState<WizardErrors>({})
+  const [editMeasurementId, setEditMeasurementId] = useState<string | null>(null)
 
   const dataRef = useRef(data)
   useEffect(() => {
@@ -315,15 +389,40 @@ export function useMeasurementWizard(
     return payload
   }, [data])
 
+  const initFromMeasurement = useCallback((measurement: MeasurementForEdit) => {
+    const next = measurementToWizardData(measurement)
+    dataRef.current = next
+    setData(next)
+    setErrors({})
+    setStep(1)
+    setMaxReachedStep(TOTAL_STEPS)
+    const id = measurement._id ?? measurement.id ?? null
+    setEditMeasurementId(id)
+  }, [])
+
+  const reset = useCallback(() => {
+    const next = emptyData()
+    dataRef.current = next
+    setData(next)
+    setErrors({})
+    setStep(1)
+    setMaxReachedStep(1)
+    setEditMeasurementId(null)
+  }, [])
+
   return {
     step,
     data,
     errors,
     hasData,
+    isEditMode: editMeasurementId !== null,
+    editMeasurementId,
     setField,
     next,
     prev,
     goTo,
     getSavePayload,
+    initFromMeasurement,
+    reset,
   }
 }
