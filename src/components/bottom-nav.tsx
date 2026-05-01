@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { href: "/", label: "Início" },
   { href: "/medir", label: "Medir" },
   { href: "/historico", label: "Histórico" },
+  { href: "/graficos", label: "Gráficos" },
   { href: "/configuracoes", label: "Perfis" },
 ]
 
