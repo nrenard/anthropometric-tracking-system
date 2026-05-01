@@ -142,6 +142,34 @@ afterAll(() => {
   fetchSpy?.mockRestore()
 })
 
+function makeMeasurement(date: string, weight: number) {
+  return {
+    _id: Math.random().toString(36).slice(2),
+    profileId: PROFILE_ID,
+    measuredAt: new Date(date + "T12:00:00Z").toISOString(),
+    weight,
+    height: 170,
+    skinfolds: {
+      chest: 10,
+      midaxillary: 8,
+      triceps: 12,
+      subscapular: 15,
+      abdominal: 20,
+      suprailiac: 18,
+      thigh: 14,
+    },
+    perimeters: {
+      waist: 75,
+      hip: 95,
+      arm: { left: 28, right: 28 },
+      forearm: { left: 24, right: 24 },
+      thigh: { left: 55, right: 55 },
+      calf: { left: 36, right: 36 },
+    },
+    diameters: { humerus: 6.5, femur: 9.2 },
+  }
+}
+
 describe("GraficosPage - state rendering", () => {
   it("shows 'Selecione um perfil para ver os gráficos' when no active profile", async () => {
     document.cookie = `ACTIVE_PROFILE_ID=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`
@@ -237,6 +265,77 @@ describe("GraficosPage - state rendering", () => {
     const periodButton = screen.getByRole("button", { name: "30 dias" })
     await act(async () => {
       periodButton.click()
+    })
+  })
+
+  it("renders area chart with data points when measurements exist", async () => {
+    const measurements = [
+      makeMeasurement("2026-04-01", 70),
+      makeMeasurement("2026-04-08", 69.5),
+      makeMeasurement("2026-04-15", 69),
+    ]
+
+    fetchSpy.mockImplementation(
+      createFetchMock(() => jsonResponse(measurements)),
+    )
+
+    renderPage()
+
+    await waitFor(() => {
+      expect(screen.getByTestId("chart-area")).toBeDefined()
+    })
+
+    expect(screen.getByTestId("area-chart")).toBeDefined()
+    expect(screen.getByTestId("area")).toBeDefined()
+    expect(screen.getAllByTestId("chart-point")).toHaveLength(3)
+  })
+
+  it("formats x-axis dates as DD/MM/YY", async () => {
+    const measurements = [
+      makeMeasurement("2026-04-01", 70),
+      makeMeasurement("2026-04-15", 69),
+    ]
+
+    fetchSpy.mockImplementation(
+      createFetchMock(() => jsonResponse(measurements)),
+    )
+
+    renderPage()
+
+    await waitFor(() => {
+      expect(screen.getByTestId("chart-area")).toBeDefined()
+    })
+
+    const points = screen.getAllByTestId("chart-point").map((node) => node.textContent ?? "")
+    expect(points.some((text) => text.startsWith("01/04/26"))).toBe(true)
+    expect(points.some((text) => text.startsWith("15/04/26"))).toBe(true)
+  })
+
+  it("shows solitary dot without area for single measurement", async () => {
+    const measurements = [makeMeasurement("2026-04-01", 70)]
+
+    fetchSpy.mockImplementation(
+      createFetchMock(() => jsonResponse(measurements)),
+    )
+
+    renderPage()
+
+    await waitFor(() => {
+      expect(screen.getByTestId("chart-area")).toBeDefined()
+    })
+
+    expect(screen.getAllByTestId("chart-point")).toHaveLength(1)
+  })
+
+  it("shows error message when fetch fails", async () => {
+    fetchSpy.mockImplementation(
+      createFetchMock(() => jsonResponse({}, { ok: false, status: 500 })),
+    )
+
+    renderPage()
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toBeDefined()
     })
   })
 })

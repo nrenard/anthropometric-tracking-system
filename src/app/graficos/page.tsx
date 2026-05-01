@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import {
   Box,
   Button,
@@ -14,6 +14,21 @@ import {
 import { BottomNav } from "@/components/bottom-nav"
 import { useActiveProfile } from "@/hooks/use-active-profile"
 import { subDays, subMonths, subYears } from "@/lib/date-utils"
+import {
+  computeAllMetrics,
+  type MeasurementInput,
+  type ProfileInput,
+} from "@/lib/calculations"
+import type { ProfileDTO } from "@/app/actions/profile-actions"
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts"
 
 const METRICS = [
   { key: "weight", label: "Peso", unit: "kg" },
@@ -70,7 +85,7 @@ interface FetchState {
 }
 
 export default function GraficosPage() {
-  const { activeProfileId } = useActiveProfile()
+  const { activeProfileId, activeProfile } = useActiveProfile()
   const [selectedMetric, setSelectedMetric] = useState("weight")
   const [selectedPeriod, setSelectedPeriod] = useState("Tudo")
   const [result, setResult] = useState<FetchState | null>(null)
@@ -132,9 +147,34 @@ export default function GraficosPage() {
   }, [])
 
   const matches = result?.profileId === activeProfileId
-  const measurements = matches ? result?.measurements ?? [] : []
+  const measurements = useMemo(
+    () => (matches ? result?.measurements ?? [] : []),
+    [matches, result],
+  )
   const error = matches ? result?.error ?? null : null
   const isLoading = !!activeProfileId && !matches
+
+  const metricDef = METRICS.find((m) => m.key === selectedMetric)
+
+  const profileInput = useMemo<ProfileInput | null>(() => {
+    if (!activeProfile) return null
+    return toProfileInput(activeProfile)
+  }, [activeProfile])
+
+  const chartData = useMemo(() => {
+    if (!profileInput) return []
+
+    return measurements
+      .map((measurement) => {
+        const value = extractMetricValue(measurement, profileInput, selectedMetric)
+        if (value === null) return null
+        return {
+          date: formatDateShort(new Date(measurement.measuredAt)),
+          value,
+        }
+      })
+      .filter((point): point is { date: string; value: number } => point !== null)
+  }, [measurements, profileInput, selectedMetric])
 
   const headerSection = (
     <Heading as="h1" size="lg" mb={4}>
@@ -199,11 +239,103 @@ export default function GraficosPage() {
         ) : measurements.length === 0 ? (
           <Text>Nenhum dado disponível para o período selecionado</Text>
         ) : (
-          <Box data-testid="chart-area" height="400px" />
+          <Box data-testid="chart-area" height="400px" width="100%">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={chartData}>
+                <defs>
+                  <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3182ce" stopOpacity={0.8} />
+                    <stop offset="95%" stopColor="#3182ce" stopOpacity={0.1} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip content={<CustomTooltip unit={metricDef?.unit ?? ""} />} />
+                <Area
+                  type="monotone"
+                  dataKey="value"
+                  stroke="#3182ce"
+                  fill="url(#chartGradient)"
+                  dot={{ r: 3 }}
+                  activeDot={{ r: 5 }}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </Box>
         )}
       </Stack>
 
       <BottomNav />
+    </Box>
+  )
+}
+
+function formatDateShort(date: Date): string {
+  const day = String(date.getDate()).padStart(2, "0")
+  const month = String(date.getMonth() + 1).padStart(2, "0")
+  const year = String(date.getFullYear()).slice(-2)
+  return `${day}/${month}/${year}`
+}
+
+function toProfileInput(profile: ProfileDTO): ProfileInput {
+  return {
+    name: profile.name,
+    email: profile.email,
+    dateOfBirth: new Date(profile.dateOfBirth),
+    sex: profile.sex,
+    defaultHeight: profile.defaultHeight,
+  }
+}
+
+function extractMetricValue(
+  measurement: Measurement,
+  profileInput: ProfileInput,
+  metricKey: string,
+): number | null {
+  switch (metricKey) {
+    case "weight":
+      return measurement.weight
+    case "waist":
+      return measurement.perimeters?.waist ?? null
+    case "hip":
+      return measurement.perimeters?.hip ?? null
+    default: {
+      if (!measurement.skinfolds || !measurement.perimeters || !measurement.diameters || !measurement.height) {
+        return null
+      }
+      const input: MeasurementInput = {
+        measuredAt: new Date(measurement.measuredAt),
+        weight: measurement.weight,
+        height: measurement.height,
+        skinfolds: measurement.skinfolds,
+        perimeters: measurement.perimeters,
+        diameters: measurement.diameters,
+      }
+      const metrics = computeAllMetrics(input, profileInput)
+      return (metrics as Record<string, number>)[metricKey] ?? null
+    }
+  }
+}
+
+interface CustomTooltipProps {
+  unit: string
+  active?: boolean
+  payload?: Array<{ payload: { date: string; value: number } }>
+  label?: string
+}
+
+function CustomTooltip({ unit, active, payload }: CustomTooltipProps) {
+  if (!active || !payload || payload.length === 0) return null
+  const point = payload[0]!.payload
+  return (
+    <Box bg="bg.panel" borderWidth={1} borderRadius="md" p={2} boxShadow="sm">
+      <Text fontSize="sm" fontWeight="medium">
+        {point.date}
+      </Text>
+      <Text fontSize="sm">
+        {point.value.toFixed(2)}{unit ? ` ${unit}` : ""}
+      </Text>
     </Box>
   )
 }
