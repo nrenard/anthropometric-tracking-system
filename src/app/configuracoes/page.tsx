@@ -79,6 +79,7 @@ export default function ConfiguracoesPage() {
     }
   }, [])
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (activeProfile) {
       setEditName(activeProfile.name)
@@ -98,6 +99,7 @@ export default function ConfiguracoesPage() {
       setEditDefaultHeight("")
     }
   }, [activeProfile])
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   function resetCreateForm() {
     setCreateName("")

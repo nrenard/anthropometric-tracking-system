@@ -649,12 +649,9 @@ describe("Step 02 — Edit active profile form", () => {
       })
 
       state = profileMap.next
-      // Re-render with updated state is handled by mock returning new data
-      // Since useActiveProfileMock is called each render, we verify via mockImplementation
-      // The component uses useEffect to re-populate when activeProfile changes
-      // Here we verify the initial state is correct, and trust the useEffect
 
       expect(useActiveProfileMock).toHaveBeenCalled()
+      void rerender
     })
   })
 
