@@ -21,97 +21,28 @@ import { useActiveProfile } from "@/hooks/use-active-profile"
 import {
   computeAllMetrics,
   type AllMetrics,
-  type MeasurementInput,
-  type ProfileInput,
 } from "@/lib/calculations"
 import { formatDateTime } from "@/lib/date-utils"
+import {
+  toMeasurementInput,
+  toProfileInput,
+  type MeasurementData,
+  type ProfileData,
+} from "@/lib/measurement-utils"
 
 const EM_DASH = "—"
 const FETCH_ERROR_MESSAGE = "Falha ao carregar medição"
-
-interface DetailProfile {
-  _id: string
-  name: string
-  email: string
-  dateOfBirth: string
-  sex: "M" | "F"
-  defaultHeight: number
-  createdAt: string
-  updatedAt: string
-}
-
-interface DetailMeasurement {
-  _id: string
-  profileId: string
-  measuredAt: string
-  notes?: string
-  weight: number
-  height?: number
-  skinfolds?: {
-    chest: number
-    midaxillary: number
-    triceps: number
-    subscapular: number
-    abdominal: number
-    suprailiac: number
-    thigh: number
-  }
-  perimeters?: {
-    waist: number
-    hip: number
-    arm: { left: number; right: number }
-    forearm: { left: number; right: number }
-    thigh: { left: number; right: number }
-    calf: { left: number; right: number }
-  }
-  diameters?: { humerus: number; femur: number }
-  createdAt: string
-  updatedAt: string
-}
 
 type FetchState =
   | { kind: "loading" }
   | { kind: "notFound" }
   | { kind: "error"; message: string }
-  | { kind: "loaded"; measurement: DetailMeasurement; profile: DetailProfile }
+  | { kind: "loaded"; measurement: MeasurementData; profile: ProfileData }
 
 function formatNumber(value: number | null | undefined, decimals: number, unit?: string): string {
   if (value === null || value === undefined || Number.isNaN(value)) return EM_DASH
   const formatted = value.toFixed(decimals)
   return unit ? `${formatted} ${unit}` : formatted
-}
-
-function toProfileInput(profile: DetailProfile): ProfileInput {
-  return {
-    name: profile.name,
-    email: profile.email,
-    dateOfBirth: new Date(profile.dateOfBirth),
-    sex: profile.sex,
-    defaultHeight: profile.defaultHeight,
-  }
-}
-
-function toMeasurementInput(
-  measurement: DetailMeasurement,
-  fallbackHeight: number,
-): MeasurementInput | null {
-  const height = measurement.height ?? fallbackHeight
-  if (
-    !measurement.skinfolds ||
-    !measurement.perimeters ||
-    !measurement.diameters ||
-    !height
-  ) {
-    return null
-  }
-  return {
-    measuredAt: new Date(measurement.measuredAt),
-    weight: measurement.weight,
-    height,
-    skinfolds: measurement.skinfolds,
-    perimeters: measurement.perimeters,
-    diameters: measurement.diameters,
-  }
 }
 
 interface DetailRowProps {
@@ -146,7 +77,7 @@ function Section({ testId, title, children }: SectionProps) {
 }
 
 interface BasicSectionProps {
-  measurement: DetailMeasurement
+  measurement: MeasurementData
 }
 
 function BasicSection({ measurement }: BasicSectionProps) {
@@ -161,12 +92,12 @@ function BasicSection({ measurement }: BasicSectionProps) {
 }
 
 interface SkinfoldsSectionProps {
-  skinfolds: DetailMeasurement["skinfolds"]
+  skinfolds: MeasurementData["skinfolds"]
 }
 
 const SKINFOLD_FIELDS: ReadonlyArray<{
   label: string
-  key: keyof NonNullable<DetailMeasurement["skinfolds"]>
+  key: keyof NonNullable<MeasurementData["skinfolds"]>
 }> = [
   { label: "Tríceps", key: "triceps" },
   { label: "Subescapular", key: "subscapular" },
@@ -194,7 +125,7 @@ function SkinfoldsSection({ skinfolds }: SkinfoldsSectionProps) {
 }
 
 interface PerimetersSectionProps {
-  perimeters: DetailMeasurement["perimeters"]
+  perimeters: MeasurementData["perimeters"]
 }
 
 interface BilateralRowProps {
@@ -229,7 +160,7 @@ function PerimetersSection({ perimeters }: PerimetersSectionProps) {
 }
 
 interface DiametersSectionProps {
-  diameters: DetailMeasurement["diameters"]
+  diameters: MeasurementData["diameters"]
 }
 
 function DiametersSection({ diameters }: DiametersSectionProps) {
@@ -304,8 +235,8 @@ export default function MeasurementDetailPage() {
         if (!measurementRes.ok || !profileRes.ok) {
           throw new Error(FETCH_ERROR_MESSAGE)
         }
-        const measurement = (await measurementRes.json()) as DetailMeasurement
-        const profile = (await profileRes.json()) as DetailProfile
+        const measurement = (await measurementRes.json()) as MeasurementData
+        const profile = (await profileRes.json()) as ProfileData
         if (cancelled) return
         setState({ kind: "loaded", measurement, profile })
       } catch (err) {

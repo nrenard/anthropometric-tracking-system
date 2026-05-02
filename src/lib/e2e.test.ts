@@ -70,10 +70,10 @@ describe("E2E: models + calculations + validation", () => {
       {
         measuredAt: savedMeasurement.measuredAt,
         weight: savedMeasurement.weight,
-        height: savedMeasurement.height,
-        skinfolds: savedMeasurement.skinfolds,
-        perimeters: savedMeasurement.perimeters,
-        diameters: savedMeasurement.diameters,
+        height: savedMeasurement.height!,
+        skinfolds: savedMeasurement.skinfolds!,
+        perimeters: savedMeasurement.perimeters!,
+        diameters: savedMeasurement.diameters!,
       },
       {
         name: profile.name,

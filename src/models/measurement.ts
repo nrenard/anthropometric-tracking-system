@@ -1,33 +1,38 @@
 import mongoose, { Document, Schema, Types } from "mongoose"
 
+const positiveValidator = {
+  validator: (v: number) => v > 0,
+  message: "Must be positive",
+}
+
 const LeftRightSchema = new Schema(
   {
-    left: { type: Number, required: true, min: 0 },
-    right: { type: Number, required: true, min: 0 },
+    left: { type: Number, required: true, validate: positiveValidator },
+    right: { type: Number, required: true, validate: positiveValidator },
   },
   { _id: false }
 )
 
 const SkinfoldsSchema = new Schema(
   {
-    chest: { type: Number, required: true, min: 0 },
-    midaxillary: { type: Number, required: true, min: 0 },
-    triceps: { type: Number, required: true, min: 0 },
-    subscapular: { type: Number, required: true, min: 0 },
-    abdominal: { type: Number, required: true, min: 0 },
-    suprailiac: { type: Number, required: true, min: 0 },
-    thigh: { type: Number, required: true, min: 0 },
+    chest: { type: Number, required: true, validate: positiveValidator, max: 100 },
+    midaxillary: { type: Number, required: true, validate: positiveValidator, max: 100 },
+    triceps: { type: Number, required: true, validate: positiveValidator, max: 100 },
+    subscapular: { type: Number, required: true, validate: positiveValidator, max: 100 },
+    abdominal: { type: Number, required: true, validate: positiveValidator, max: 100 },
+    suprailiac: { type: Number, required: true, validate: positiveValidator, max: 100 },
+    thigh: { type: Number, required: true, validate: positiveValidator, max: 100 },
   },
   { _id: false }
 )
 
 const PerimetersSchema = new Schema(
   {
-    neck: { type: Number, required: true, min: 0 },
-    waist: { type: Number, required: true, min: 0 },
-    hip: { type: Number, required: true, min: 0 },
-    abdomen: { type: Number, required: false, min: 0 },
-    chest: { type: Number, required: false, min: 0 },
+    neck: { type: Number, required: true, validate: positiveValidator, max: 300 },
+    waist: { type: Number, required: true, validate: positiveValidator, max: 300 },
+    hip: { type: Number, required: true, validate: positiveValidator, max: 300 },
+    abdomen: { type: Number, required: false, validate: positiveValidator, max: 300 },
+    chest: { type: Number, required: false, validate: positiveValidator, max: 300 },
     arm: { type: LeftRightSchema, required: true },
     forearm: { type: LeftRightSchema, required: true },
     thigh: { type: LeftRightSchema, required: true },
@@ -38,8 +43,8 @@ const PerimetersSchema = new Schema(
 
 const DiametersSchema = new Schema(
   {
-    humerus: { type: Number, required: true, min: 0 },
-    femur: { type: Number, required: true, min: 0 },
+    humerus: { type: Number, required: true, validate: positiveValidator },
+    femur: { type: Number, required: true, validate: positiveValidator },
   },
   { _id: false }
 )
@@ -49,8 +54,8 @@ const measurementSchema = new Schema(
     profileId: { type: Schema.Types.ObjectId, ref: "Profile", required: true },
     measuredAt: { type: Date, required: true },
     notes: { type: String, required: false },
-    weight: { type: Number, required: true, min: 0 },
-    height: { type: Number, required: false, min: 0 },
+    weight: { type: Number, required: true, validate: positiveValidator, max: 700 },
+    height: { type: Number, required: false, validate: positiveValidator, max: 300 },
     skinfolds: { type: SkinfoldsSchema, required: false },
     perimeters: { type: PerimetersSchema, required: false },
     diameters: { type: DiametersSchema, required: false },

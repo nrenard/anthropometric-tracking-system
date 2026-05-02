@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest"
 import mongoose from "mongoose"
+import { ACTIVE_PROFILE_COOKIE } from "@/lib/cookies"
 
 const sessionState: { isAuthenticated?: boolean } = { isAuthenticated: true }
 
@@ -59,13 +60,14 @@ const perimeters = {
 
 const diameters = { humerus: 7.2, femur: 10.1 }
 
-async function createProfile() {
+async function createProfile(overrides: Record<string, unknown> = {}) {
   const profile = await Profile.create({
     name: "Jane Doe",
     email: "jane@example.com",
     dateOfBirth: new Date("1990-01-15"),
     sex: "F",
     defaultHeight: 170,
+    ...overrides,
   })
   return profile.id as string
 }
@@ -82,10 +84,13 @@ async function seedMeasurement(profileId: string) {
   })
 }
 
-function buildRequest(method: string, body?: unknown): Request {
+function buildRequest(method: string, body?: unknown, extraHeaders?: Record<string, string>): Request {
+  const headers: Record<string, string> = {}
+  if (body) headers["Content-Type"] = "application/json"
+  if (extraHeaders) Object.assign(headers, extraHeaders)
   return new Request("http://localhost/api/measurements/test", {
     method,
-    headers: body ? { "Content-Type": "application/json" } : undefined,
+    headers: Object.keys(headers).length ? headers : undefined,
     body: body ? JSON.stringify(body) : undefined,
   })
 }
@@ -123,6 +128,34 @@ describe("GET /api/measurements/[id]", () => {
     )
     expect(response.status).toBe(404)
     expect(await response.json()).toEqual({ error: "Medição não encontrado(a)" })
+  })
+
+  it("returns 403 when measurement belongs to a different profile", async () => {
+    const profileA = await createProfile({ email: "a@example.com" })
+    const profileB = await createProfile({ name: "John Doe", email: "john@example.com", sex: "M" })
+    const measurement = await seedMeasurement(profileA)
+
+    const response = await GET(
+      buildRequest("GET", undefined, {
+        Cookie: `${ACTIVE_PROFILE_COOKIE}=${encodeURIComponent(profileB)}`,
+      }),
+      context(measurement.id),
+    )
+    expect(response.status).toBe(403)
+    expect(await response.json()).toEqual({ error: "Medição não pertence ao perfil ativo" })
+  })
+
+  it("succeeds when measurement belongs to the active profile", async () => {
+    const profileA = await createProfile({ email: "a@example.com" })
+    const measurement = await seedMeasurement(profileA)
+
+    const response = await GET(
+      buildRequest("GET", undefined, {
+        Cookie: `${ACTIVE_PROFILE_COOKIE}=${encodeURIComponent(profileA)}`,
+      }),
+      context(measurement.id),
+    )
+    expect(response.status).toBe(200)
   })
 })
 
@@ -193,6 +226,21 @@ describe("PUT /api/measurements/[id]", () => {
     expect(response.status).toBe(404)
     expect(await response.json()).toEqual({ error: "Medição não encontrado(a)" })
   })
+
+  it("returns 403 when measurement belongs to a different profile", async () => {
+    const profileA = await createProfile({ email: "a@example.com" })
+    const profileB = await createProfile({ name: "John Doe", email: "john@example.com", sex: "M" })
+    const measurement = await seedMeasurement(profileA)
+
+    const response = await PUT(
+      buildRequest("PUT", { weight: 71 }, {
+        Cookie: `${ACTIVE_PROFILE_COOKIE}=${encodeURIComponent(profileB)}`,
+      }),
+      context(measurement.id),
+    )
+    expect(response.status).toBe(403)
+    expect(await response.json()).toEqual({ error: "Medição não pertence ao perfil ativo" })
+  })
 })
 
 describe("DELETE /api/measurements/[id]", () => {
@@ -225,5 +273,20 @@ describe("DELETE /api/measurements/[id]", () => {
   it("returns 400 for an invalid ObjectId", async () => {
     const response = await DELETE(buildRequest("DELETE"), context("nope"))
     expect(response.status).toBe(400)
+  })
+
+  it("returns 403 when measurement belongs to a different profile", async () => {
+    const profileA = await createProfile({ email: "a@example.com" })
+    const profileB = await createProfile({ name: "John Doe", email: "john@example.com", sex: "M" })
+    const measurement = await seedMeasurement(profileA)
+
+    const response = await DELETE(
+      buildRequest("DELETE", undefined, {
+        Cookie: `${ACTIVE_PROFILE_COOKIE}=${encodeURIComponent(profileB)}`,
+      }),
+      context(measurement.id),
+    )
+    expect(response.status).toBe(403)
+    expect(await response.json()).toEqual({ error: "Medição não pertence ao perfil ativo" })
   })
 })

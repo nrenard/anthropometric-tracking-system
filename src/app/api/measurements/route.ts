@@ -4,7 +4,7 @@ import Measurement from "@/models/measurement"
 import Profile from "@/models/profile"
 import { ensureAuthenticated } from "@/lib/auth"
 import { measurementCreateSchema } from "@/lib/validation"
-import { errorResponse, notFoundResponse } from "../profiles/_helpers"
+import { errorResponse } from "../profiles/_helpers"
 
 interface MeasurementQuery {
   profileId: string

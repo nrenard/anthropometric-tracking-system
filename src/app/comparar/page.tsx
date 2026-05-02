@@ -18,43 +18,17 @@ import { useActiveProfile } from "@/hooks/use-active-profile"
 import {
   computeAllMetrics,
   type AllMetrics,
-  type MeasurementInput,
-  type ProfileInput,
 } from "@/lib/calculations"
 import { formatDateTime } from "@/lib/date-utils"
+import {
+  toMeasurementInput,
+  toProfileInput,
+  type MeasurementData,
+} from "@/lib/measurement-utils"
 import type { ProfileDTO } from "@/app/actions/profile-actions"
 
 const EM_DASH = "—"
 const FETCH_ERROR_MESSAGE = "Falha ao carregar medições"
-
-interface CompareMeasurement {
-  _id: string
-  profileId: string
-  measuredAt: string
-  notes?: string
-  weight: number
-  height?: number
-  skinfolds?: {
-    chest: number
-    midaxillary: number
-    triceps: number
-    subscapular: number
-    abdominal: number
-    suprailiac: number
-    thigh: number
-  }
-  perimeters?: {
-    waist: number
-    hip: number
-    arm: { left: number; right: number }
-    forearm: { left: number; right: number }
-    thigh: { left: number; right: number }
-    calf: { left: number; right: number }
-  }
-  diameters?: { humerus: number; femur: number }
-  createdAt: string
-  updatedAt: string
-}
 
 type DeltaDirection = "improve" | "worsen" | "neutral"
 
@@ -94,39 +68,6 @@ function pctDelta(a: number, b: number): number | null {
   return ((b - a) / a) * 100
 }
 
-function toProfileInput(profile: ProfileDTO): ProfileInput {
-  return {
-    name: profile.name,
-    email: profile.email,
-    dateOfBirth: new Date(profile.dateOfBirth),
-    sex: profile.sex,
-    defaultHeight: profile.defaultHeight,
-  }
-}
-
-function toMeasurementInput(
-  measurement: CompareMeasurement,
-  fallbackHeight: number,
-): MeasurementInput | null {
-  const height = measurement.height ?? fallbackHeight
-  if (
-    !measurement.skinfolds ||
-    !measurement.perimeters ||
-    !measurement.diameters ||
-    !height
-  ) {
-    return null
-  }
-  return {
-    measuredAt: new Date(measurement.measuredAt),
-    weight: measurement.weight,
-    height,
-    skinfolds: measurement.skinfolds,
-    perimeters: measurement.perimeters,
-    diameters: measurement.diameters,
-  }
-}
-
 interface RowSpec {
   field: string
   label: string
@@ -142,8 +83,8 @@ interface SectionSpec {
 }
 
 function buildSections(
-  measurementA: CompareMeasurement,
-  measurementB: CompareMeasurement,
+  measurementA: MeasurementData,
+  measurementB: MeasurementData,
   metricsA: AllMetrics | null,
   metricsB: AllMetrics | null,
 ): SectionSpec[] {
@@ -237,7 +178,7 @@ interface PickerProps {
   id: string
   label: string
   value: string
-  measurements: CompareMeasurement[]
+  measurements: MeasurementData[]
   onChange: (value: string) => void
 }
 
@@ -267,8 +208,8 @@ function Picker({ id, label, value, measurements, onChange }: PickerProps) {
 }
 
 interface ComparisonTableProps {
-  measurementA: CompareMeasurement
-  measurementB: CompareMeasurement
+  measurementA: MeasurementData
+  measurementB: MeasurementData
   metricsA: AllMetrics | null
   metricsB: AllMetrics | null
 }
@@ -343,7 +284,7 @@ function ComparisonTable({
 
 interface FetchState {
   profileId: string
-  measurements: CompareMeasurement[]
+  measurements: MeasurementData[]
   error: string | null
 }
 
@@ -367,7 +308,7 @@ export default function CompararPage() {
         if (!res.ok) {
           throw new Error(FETCH_ERROR_MESSAGE)
         }
-        const data = (await res.json()) as CompareMeasurement[]
+        const data = (await res.json()) as MeasurementData[]
         if (cancelled) return
         setResult({
           profileId: activeProfileId,
@@ -391,7 +332,7 @@ export default function CompararPage() {
   }, [activeProfileId, reloadKey])
 
   const matches = result?.profileId === activeProfileId
-  const measurements = useMemo<CompareMeasurement[]>(
+  const measurements = useMemo<MeasurementData[]>(
     () => (matches ? result?.measurements ?? [] : []),
     [matches, result],
   )
@@ -427,7 +368,7 @@ export default function CompararPage() {
   )
 
   const profileInput = useMemo(
-    () => (activeProfile ? toProfileInput(activeProfile) : null),
+    () => (activeProfile ? toProfileInput(activeProfile as ProfileDTO) : null),
     [activeProfile],
   )
 

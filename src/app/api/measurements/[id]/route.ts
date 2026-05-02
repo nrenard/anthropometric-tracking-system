@@ -1,7 +1,7 @@
 import mongoose from "mongoose"
 import dbConnect from "@/lib/mongodb"
 import Measurement from "@/models/measurement"
-import { ensureAuthenticated } from "@/lib/auth"
+import { ensureAuthenticated, getActiveProfileId } from "@/lib/auth"
 import { measurementSchema } from "@/lib/validation"
 import { errorResponse, notFoundResponse } from "../../profiles/_helpers"
 
@@ -9,7 +9,19 @@ type RouteContext = { params: Promise<{ id: string }> }
 
 const measurementUpdateSchema = measurementSchema.partial()
 
-export async function GET(_request: Request, context: RouteContext): Promise<Response> {
+function checkOwnership(
+  doc: { profileId: { toString(): string } },
+  request: Request,
+): Response | null {
+  const result = getActiveProfileId(request)
+  const activeProfileId = "error" in result ? null : result.profileId
+  if (activeProfileId && doc.profileId.toString() !== activeProfileId) {
+    return errorResponse("Medição não pertence ao perfil ativo", 403)
+  }
+  return null
+}
+
+export async function GET(request: Request, context: RouteContext): Promise<Response> {
   const unauthorized = await ensureAuthenticated()
   if (unauthorized) return unauthorized
 
@@ -19,6 +31,9 @@ export async function GET(_request: Request, context: RouteContext): Promise<Res
   await dbConnect()
   const doc = await Measurement.findById(id).lean()
   if (!doc) return notFoundResponse("Medição")
+
+  const forbidden = checkOwnership(doc, request)
+  if (forbidden) return forbidden
 
   return Response.json(doc, { status: 200 })
 }
@@ -53,10 +68,14 @@ export async function PUT(request: Request, context: RouteContext): Promise<Resp
   }).lean()
 
   if (!updated) return notFoundResponse("Medição")
+
+  const forbidden = checkOwnership(updated, request)
+  if (forbidden) return forbidden
+
   return Response.json(updated, { status: 200 })
 }
 
-export async function DELETE(_request: Request, context: RouteContext): Promise<Response> {
+export async function DELETE(request: Request, context: RouteContext): Promise<Response> {
   const unauthorized = await ensureAuthenticated()
   if (unauthorized) return unauthorized
 
@@ -64,6 +83,12 @@ export async function DELETE(_request: Request, context: RouteContext): Promise<
   if (!mongoose.isValidObjectId(id)) return errorResponse("Medição não encontrada", 400)
 
   await dbConnect()
+  const doc = await Measurement.findById(id).lean()
+  if (!doc) return new Response(null, { status: 204 })
+
+  const forbidden = checkOwnership(doc, request)
+  if (forbidden) return forbidden
+
   await Measurement.findByIdAndDelete(id)
   return new Response(null, { status: 204 })
 }

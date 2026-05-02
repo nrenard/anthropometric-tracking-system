@@ -70,7 +70,7 @@ const actionsModule = (await import("@/app/actions/profile-actions")) as unknown
   getProfiles: ReturnType<typeof vi.fn>
 }
 
-import GraficosPage from "./page"
+import GraficosPage, { extractMetricValue } from "./page"
 
 interface JsonResponseInit {
   ok?: boolean
@@ -133,7 +133,8 @@ beforeEach(() => {
   if (!globalThis.fetch) {
     ;(globalThis as Record<string, unknown>).fetch = vi.fn()
   }
-  fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  fetchSpy = vi.spyOn(globalThis, "fetch" as any).mockImplementation(
     createFetchMock(() => jsonResponse([])),
   )
 })
@@ -337,5 +338,95 @@ describe("GraficosPage - state rendering", () => {
     await waitFor(() => {
       expect(screen.getByRole("alert")).toBeDefined()
     })
+  })
+})
+
+describe("extractMetricValue", () => {
+  const profileInput = {
+    name: "Test",
+    email: "test@test.com",
+    dateOfBirth: new Date("1990-01-01"),
+    sex: "M" as const,
+    defaultHeight: 175,
+  }
+
+  const fullMeasurement = {
+    _id: "abc",
+    profileId: "111111111111111111111111",
+    measuredAt: "2026-04-01T12:00:00Z",
+    weight: 70,
+    height: 175,
+    skinfolds: {
+      chest: 10,
+      midaxillary: 8,
+      triceps: 12,
+      subscapular: 15,
+      abdominal: 20,
+      suprailiac: 18,
+      thigh: 14,
+    },
+    perimeters: {
+      waist: 80,
+      hip: 100,
+      arm: { left: 30, right: 30 },
+      forearm: { left: 26, right: 26 },
+      thigh: { left: 55, right: 55 },
+      calf: { left: 37, right: 37 },
+    },
+    diameters: { humerus: 7, femur: 10 },
+  }
+
+  it("returns weight even when height is missing", () => {
+    const result = extractMetricValue(
+      { ...fullMeasurement, height: undefined },
+      profileInput,
+      "weight",
+    )
+    expect(result).toBe(70)
+  })
+
+  it("returns waist even when height is missing", () => {
+    const result = extractMetricValue(
+      { ...fullMeasurement, height: undefined },
+      profileInput,
+      "waist",
+    )
+    expect(result).toBe(80)
+  })
+
+  it("returns hip even when height is missing", () => {
+    const result = extractMetricValue(
+      { ...fullMeasurement, height: undefined },
+      profileInput,
+      "hip",
+    )
+    expect(result).toBe(100)
+  })
+
+  it("returns waistToHip even when height is missing", () => {
+    const result = extractMetricValue(
+      { ...fullMeasurement, height: undefined },
+      profileInput,
+      "waistToHip",
+    )
+    expect(result).toBeCloseTo(0.8, 3)
+  })
+
+  it("returns null for waistToHeight when height is missing", () => {
+    const result = extractMetricValue(
+      { ...fullMeasurement, height: undefined },
+      profileInput,
+      "waistToHeight",
+    )
+    expect(result).toBeNull()
+  })
+
+  it("returns null for bmi when height is missing", () => {
+    const result = extractMetricValue(
+      { ...fullMeasurement, height: undefined },
+      profileInput,
+      "bmi",
+    )
+    expect(result).toBeNull()
   })
 })

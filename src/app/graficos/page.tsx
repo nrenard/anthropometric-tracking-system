@@ -16,6 +16,8 @@ import { useActiveProfile } from "@/hooks/use-active-profile"
 import { subDays, subMonths, subYears } from "@/lib/date-utils"
 import {
   computeAllMetrics,
+  waistToHip,
+  waistToHeight,
   type MeasurementInput,
   type ProfileInput,
 } from "@/lib/calculations"
@@ -288,7 +290,7 @@ function toProfileInput(profile: ProfileDTO): ProfileInput {
   }
 }
 
-function extractMetricValue(
+export function extractMetricValue(
   measurement: Measurement,
   profileInput: ProfileInput,
   metricKey: string,
@@ -300,6 +302,14 @@ function extractMetricValue(
       return measurement.perimeters?.waist ?? null
     case "hip":
       return measurement.perimeters?.hip ?? null
+    case "waistToHip": {
+      if (!measurement.perimeters?.waist || !measurement.perimeters?.hip) return null
+      return waistToHip(measurement.perimeters.waist, measurement.perimeters.hip)
+    }
+    case "waistToHeight": {
+      if (!measurement.perimeters?.waist || !measurement.height) return null
+      return waistToHeight(measurement.perimeters.waist, measurement.height)
+    }
     default: {
       if (!measurement.skinfolds || !measurement.perimeters || !measurement.diameters || !measurement.height) {
         return null
@@ -313,7 +323,7 @@ function extractMetricValue(
         diameters: measurement.diameters,
       }
       const metrics = computeAllMetrics(input, profileInput)
-      return (metrics as Record<string, number>)[metricKey] ?? null
+      return (metrics as unknown as Record<string, number>)[metricKey] ?? null
     }
   }
 }

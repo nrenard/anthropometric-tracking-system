@@ -112,6 +112,24 @@ describe("Measurement model", () => {
     await expect(attempt()).rejects.toThrow()
   })
 
+  it("rejects weight of zero (positive only)", async () => {
+    const attempt = async () => {
+      const doc = new Measurement({ ...validMeasurement, weight: 0 })
+      await doc.validate()
+    }
+
+    await expect(attempt()).rejects.toThrow()
+  })
+
+  it("rejects weight above 700", async () => {
+    const attempt = async () => {
+      const doc = new Measurement({ ...validMeasurement, weight: 701 })
+      await doc.validate()
+    }
+
+    await expect(attempt()).rejects.toThrow()
+  })
+
   it("rejects missing required skinfold", async () => {
     const attempt = async () => {
       const doc = new Measurement({
@@ -129,6 +147,18 @@ describe("Measurement model", () => {
       const doc = new Measurement({
         ...validMeasurement,
         skinfolds: { ...validMeasurement.skinfolds, chest: -1 },
+      })
+      await doc.validate()
+    }
+
+    await expect(attempt()).rejects.toThrow()
+  })
+
+  it("rejects skinfold above 100", async () => {
+    const attempt = async () => {
+      const doc = new Measurement({
+        ...validMeasurement,
+        skinfolds: { ...validMeasurement.skinfolds, chest: 101 },
       })
       await doc.validate()
     }
@@ -215,6 +245,54 @@ describe("Measurement model", () => {
 
     const attempt = async () => {
       const doc = new Measurement(withoutProfile)
+      await doc.validate()
+    }
+
+    await expect(attempt()).rejects.toThrow()
+  })
+
+  it("rejects height above 300", async () => {
+    const attempt = async () => {
+      const doc = new Measurement({ ...validMeasurement, height: 301 })
+      await doc.validate()
+    }
+
+    await expect(attempt()).rejects.toThrow()
+  })
+
+  it("rejects perimeter above 300", async () => {
+    const attempt = async () => {
+      const doc = new Measurement({
+        ...validMeasurement,
+        perimeters: { ...validMeasurement.perimeters, neck: 301 },
+      })
+      await doc.validate()
+    }
+
+    await expect(attempt()).rejects.toThrow()
+  })
+
+  it("rejects zero value in left-right sub-schema", async () => {
+    const attempt = async () => {
+      const doc = new Measurement({
+        ...validMeasurement,
+        perimeters: {
+          ...validMeasurement.perimeters,
+          arm: { left: 0, right: 33 },
+        },
+      })
+      await doc.validate()
+    }
+
+    await expect(attempt()).rejects.toThrow()
+  })
+
+  it("rejects zero value for diameter fields", async () => {
+    const attempt = async () => {
+      const doc = new Measurement({
+        ...validMeasurement,
+        diameters: { humerus: 0, femur: 10 },
+      })
       await doc.validate()
     }
 

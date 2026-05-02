@@ -91,11 +91,6 @@ const PERIMETER_REQUIRED_FIELDS: WizardField[] = [
   "perimeters.calf.right",
 ]
 
-const PERIMETER_OPTIONAL_FIELDS: WizardField[] = [
-  "perimeters.abdomen",
-  "perimeters.chest",
-]
-
 const DIAMETER_FIELDS: WizardField[] = [
   "diameters.humerus",
   "diameters.femur",
@@ -272,7 +267,7 @@ export function useMeasurementWizard(
   const validateStep = useCallback(
     (current: WizardStep, currentData: WizardData): WizardErrors => {
       const next: WizardErrors = {}
-      if (current === 1) {
+      if (current === 1 || current === 5) {
         const value = currentData.weight.trim()
         if (!value) {
           next.weight = "Peso é obrigatório"
@@ -282,6 +277,49 @@ export function useMeasurementWizard(
             next.weight = "Peso deve ser maior que 0"
           } else if (parsed >= 500) {
             next.weight = "Peso inválido"
+          }
+        }
+      }
+      if (current === 2 || current === 5) {
+        for (const field of SKINFOLD_FIELDS) {
+          const val = currentData[field].trim()
+          if (!val) {
+            next[field] = "Campo obrigatório"
+          } else {
+            const parsed = Number(val)
+            if (!Number.isFinite(parsed) || parsed <= 0) {
+              next[field] = "Deve ser positivo"
+            } else if (parsed > 100) {
+              next[field] = "Máximo é 100"
+            }
+          }
+        }
+      }
+      if (current === 3 || current === 5) {
+        for (const field of PERIMETER_REQUIRED_FIELDS) {
+          const val = currentData[field].trim()
+          if (!val) {
+            next[field] = "Campo obrigatório"
+          } else {
+            const parsed = Number(val)
+            if (!Number.isFinite(parsed) || parsed <= 0) {
+              next[field] = "Deve ser positivo"
+            } else if (parsed > 300) {
+              next[field] = "Máximo é 300"
+            }
+          }
+        }
+      }
+      if (current === 4 || current === 5) {
+        for (const field of DIAMETER_FIELDS) {
+          const val = currentData[field].trim()
+          if (!val) {
+            next[field] = "Campo obrigatório"
+          } else {
+            const parsed = Number(val)
+            if (!Number.isFinite(parsed) || parsed <= 0) {
+              next[field] = "Deve ser positivo"
+            }
           }
         }
       }
@@ -376,7 +414,6 @@ export function useMeasurementWizard(
       if (chest !== undefined) perimeters.chest = chest
       payload.perimeters = perimeters
     }
-    void PERIMETER_OPTIONAL_FIELDS
 
     const diameterValues = DIAMETER_FIELDS.map((field) => parsePositive(data[field]))
     if (diameterValues.every((v): v is number => v !== undefined)) {

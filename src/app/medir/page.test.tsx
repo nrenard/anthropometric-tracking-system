@@ -133,11 +133,52 @@ describe("MedirPage shell", () => {
       fireEvent.change(weight, { target: { value: "70" } })
     })
     const nextButton = screen.getByRole("button", { name: /Próximo/i })
-    for (let i = 0; i < 4; i++) {
+    await act(async () => {
+      nextButton.click()
+    })
+
+    const skinfoldFields = [
+      /Peitoral/i, /Axilar média/i, /Tríceps/i, /Subescapular/i,
+      /Abdominal/i, /Suprailíaca/i, /Coxa/i,
+    ]
+    for (const label of skinfoldFields) {
+      const field = screen.getByLabelText(label)
       await act(async () => {
-        nextButton.click()
+        fireEvent.change(field, { target: { value: "10" } })
       })
     }
+    await act(async () => {
+      nextButton.click()
+    })
+
+    const perimeterSingle = [/Pescoço/i, /Cintura/i, /Quadril/i]
+    for (const label of perimeterSingle) {
+      const field = screen.getByLabelText(label)
+      await act(async () => {
+        fireEvent.change(field, { target: { value: "30" } })
+      })
+    }
+    const pairKeys = [/Braço esq/, /Braço dir/, /Antebraço esq/, /Antebraço dir/, /Coxa esq/, /Coxa dir/, /Panturrilha esq/, /Panturrilha dir/]
+    for (const label of pairKeys) {
+      const [field] = screen.getAllByLabelText(label)
+      await act(async () => {
+        fireEvent.change(field!, { target: { value: "30" } })
+      })
+    }
+    await act(async () => {
+      nextButton.click()
+    })
+
+    for (const label of [/Úmero/i, /Fêmur/i]) {
+      const field = screen.getByLabelText(label)
+      await act(async () => {
+        fireEvent.change(field, { target: { value: "10" } })
+      })
+    }
+    await act(async () => {
+      nextButton.click()
+    })
+
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /Salvar/i })).toBeDefined()
     })
@@ -157,11 +198,55 @@ describe("MedirPage shell", () => {
         fireEvent.change(weight, { target: { value: "70" } })
       })
       const nextButton = screen.getByRole("button", { name: /Próximo/i })
-      for (let i = 0; i < 4; i++) {
+      await act(async () => {
+        nextButton.click()
+      })
+
+      const skinfoldFields = [
+        /Peitoral/i, /Axilar média/i, /Tríceps/i, /Subescapular/i,
+        /Abdominal/i, /Suprailíaca/i, /Coxa/i,
+      ]
+      for (const label of skinfoldFields) {
+        const field = screen.getByLabelText(label)
         await act(async () => {
-          nextButton.click()
+          fireEvent.change(field, { target: { value: "10" } })
         })
       }
+      await act(async () => {
+        nextButton.click()
+      })
+
+      const perimeterFields = [
+        /Pescoço/i, /Cintura/i, /Quadril/i,
+      ]
+      for (const label of perimeterFields) {
+        const field = screen.getByLabelText(label)
+        await act(async () => {
+          fireEvent.change(field, { target: { value: "30" } })
+        })
+      }
+
+      const pairLabels = [/Braço esq/, /Braço dir/, /Antebraço esq/, /Antebraço dir/, /Coxa esq/, /Coxa dir/, /Panturrilha esq/, /Panturrilha dir/]
+      for (const label of pairLabels) {
+        const [field] = screen.getAllByLabelText(label)
+        await act(async () => {
+          fireEvent.change(field!, { target: { value: "30" } })
+        })
+      }
+      await act(async () => {
+        nextButton.click()
+      })
+
+      for (const label of [/Úmero/i, /Fêmur/i]) {
+        const field = screen.getByLabelText(label)
+        await act(async () => {
+          fireEvent.change(field, { target: { value: "10" } })
+        })
+      }
+      await act(async () => {
+        nextButton.click()
+      })
+
       const save = await screen.findByRole("button", { name: /Salvar/i })
       await act(async () => {
         save.click()
@@ -170,9 +255,10 @@ describe("MedirPage shell", () => {
       await waitFor(() => {
         expect(fetchMock).toHaveBeenCalled()
       })
-      const [url, init] = fetchMock.mock.calls[0]!
+      const call = fetchMock.mock.calls[0]! as unknown as [string, RequestInit]
+      const [url, init] = call
       expect(url).toBe("/api/measurements")
-      const body = JSON.parse((init as RequestInit).body as string) as {
+      const body = JSON.parse(init.body as string) as {
         weight: number
         profileId: string
       }
@@ -235,11 +321,55 @@ describe("MedirPage shell", () => {
         fireEvent.change(weight, { target: { value: "70" } })
       })
       const nextButton = screen.getByRole("button", { name: /Próximo/i })
-      for (let i = 0; i < 4; i++) {
+      await act(async () => {
+        nextButton.click()
+      })
+
+      const skinfoldFields = [
+        /Peitoral/i, /Axilar média/i, /Tríceps/i, /Subescapular/i,
+        /Abdominal/i, /Suprailíaca/i, /Coxa/i,
+      ]
+      for (const label of skinfoldFields) {
+        const field = screen.getByLabelText(label)
         await act(async () => {
-          nextButton.click()
+          fireEvent.change(field, { target: { value: "10" } })
         })
       }
+      await act(async () => {
+        nextButton.click()
+      })
+
+      const perimeterFields = [
+        /Pescoço/i, /Cintura/i, /Quadril/i,
+      ]
+      for (const label of perimeterFields) {
+        const field = screen.getByLabelText(label)
+        await act(async () => {
+          fireEvent.change(field, { target: { value: "30" } })
+        })
+      }
+
+      const pairLabels = [/Braço esq/, /Braço dir/, /Antebraço esq/, /Antebraço dir/, /Coxa esq/, /Coxa dir/, /Panturrilha esq/, /Panturrilha dir/]
+      for (const label of pairLabels) {
+        const [field] = screen.getAllByLabelText(label)
+        await act(async () => {
+          fireEvent.change(field!, { target: { value: "30" } })
+        })
+      }
+      await act(async () => {
+        nextButton.click()
+      })
+
+      for (const label of [/Úmero/i, /Fêmur/i]) {
+        const field = screen.getByLabelText(label)
+        await act(async () => {
+          fireEvent.change(field, { target: { value: "10" } })
+        })
+      }
+      await act(async () => {
+        nextButton.click()
+      })
+
       const save = await screen.findByRole("button", { name: /Salvar/i })
       await act(async () => {
         save.click()
@@ -332,11 +462,55 @@ describe("MedirPage edit mode", () => {
         expect(weight.value).toBe("72.4")
       })
       const nextButton = screen.getByRole("button", { name: /Próximo/i })
-      for (let i = 0; i < 4; i++) {
+      await act(async () => {
+        nextButton.click()
+      })
+
+      const skinfoldFields = [
+        /Peitoral/i, /Axilar média/i, /Tríceps/i, /Subescapular/i,
+        /Abdominal/i, /Suprailíaca/i, /Coxa/i,
+      ]
+      for (const label of skinfoldFields) {
+        const field = screen.getByLabelText(label)
         await act(async () => {
-          nextButton.click()
+          fireEvent.change(field, { target: { value: "10" } })
         })
       }
+      await act(async () => {
+        nextButton.click()
+      })
+
+      const perimeterFields = [
+        /Pescoço/i, /Cintura/i, /Quadril/i,
+      ]
+      for (const label of perimeterFields) {
+        const field = screen.getByLabelText(label)
+        await act(async () => {
+          fireEvent.change(field, { target: { value: "30" } })
+        })
+      }
+
+      const pairLabels = [/Braço esq/, /Braço dir/, /Antebraço esq/, /Antebraço dir/, /Coxa esq/, /Coxa dir/, /Panturrilha esq/, /Panturrilha dir/]
+      for (const label of pairLabels) {
+        const [field] = screen.getAllByLabelText(label)
+        await act(async () => {
+          fireEvent.change(field!, { target: { value: "30" } })
+        })
+      }
+      await act(async () => {
+        nextButton.click()
+      })
+
+      for (const label of [/Úmero/i, /Fêmur/i]) {
+        const field = screen.getByLabelText(label)
+        await act(async () => {
+          fireEvent.change(field, { target: { value: "10" } })
+        })
+      }
+      await act(async () => {
+        nextButton.click()
+      })
+
       const save = await screen.findByRole("button", { name: /Salvar/i })
       await act(async () => {
         save.click()
