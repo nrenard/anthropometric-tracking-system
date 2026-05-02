@@ -2,9 +2,9 @@ import mongoose from "mongoose"
 import dbConnect from "@/lib/mongodb"
 import Measurement from "@/models/measurement"
 import Profile from "@/models/profile"
-import { requireAuth } from "@/lib/auth"
-import { getSession } from "@/lib/session"
+import { ensureAuthenticated } from "@/lib/auth"
 import { measurementCreateSchema } from "@/lib/validation"
+import { errorResponse, notFoundResponse } from "../profiles/_helpers"
 
 interface MeasurementQuery {
   profileId: string
@@ -12,14 +12,13 @@ interface MeasurementQuery {
 }
 
 export async function GET(request: Request): Promise<Response> {
-  const session = await getSession()
-  const unauthorized = requireAuth(session)
+  const unauthorized = await ensureAuthenticated()
   if (unauthorized) return unauthorized
 
   const { searchParams } = new URL(request.url)
   const profileId = searchParams.get("profileId")
   if (!profileId) {
-    return Response.json({ error: "ID do perfil é obrigatório" }, { status: 400 })
+    return errorResponse("ID do perfil é obrigatório", 400)
   }
 
   if (!mongoose.isValidObjectId(profileId)) {
@@ -49,32 +48,31 @@ export async function GET(request: Request): Promise<Response> {
 }
 
 export async function POST(request: Request): Promise<Response> {
-  const session = await getSession()
-  const unauthorized = requireAuth(session)
+  const unauthorized = await ensureAuthenticated()
   if (unauthorized) return unauthorized
 
   let payload: unknown
   try {
     payload = await request.json()
   } catch {
-    return Response.json({ error: "Dados inválidos" }, { status: 400 })
+    return errorResponse("Dados inválidos", 400)
   }
 
   const parsed = measurementCreateSchema.safeParse(payload)
   if (!parsed.success) {
-    return Response.json({ error: "Dados inválidos" }, { status: 400 })
+    return errorResponse("Dados inválidos", 400)
   }
 
   await dbConnect()
 
   const { profileId } = parsed.data
   if (!mongoose.isValidObjectId(profileId)) {
-    return Response.json({ error: "Perfil não encontrado" }, { status: 400 })
+    return errorResponse("Perfil não encontrado", 400)
   }
 
   const profile = await Profile.findById(profileId)
   if (!profile) {
-    return Response.json({ error: "Perfil não encontrado" }, { status: 400 })
+    return errorResponse("Perfil não encontrado", 400)
   }
 
   const created = await Measurement.create(parsed.data)

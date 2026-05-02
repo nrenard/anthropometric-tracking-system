@@ -50,7 +50,7 @@ export async function createProfile(data: ProfileInput): Promise<ProfileDTO> {
 
 export async function getProfiles(): Promise<ProfileDTO[]> {
   await dbConnect()
-  const docs = await Profile.find().sort({ createdAt: 1 }).lean<ProfileLean[]>()
+  const docs = await Profile.find().sort({ createdAt: -1 }).lean<ProfileLean[]>()
   return docs.map(toDTO)
 }
 

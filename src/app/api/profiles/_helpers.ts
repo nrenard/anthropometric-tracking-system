@@ -1,10 +1,14 @@
 import mongoose from "mongoose"
-import { requireAuth } from "@/lib/auth"
-import { getSession } from "@/lib/session"
+import { ensureAuthenticated } from "@/lib/auth"
 
-export async function ensureAuthenticated(): Promise<Response | null> {
-  const session = await getSession()
-  return requireAuth(session)
+export { ensureAuthenticated }
+
+export function errorResponse(message: string, status: number): Response {
+  return Response.json({ error: message }, { status })
+}
+
+export function notFoundResponse(resource: string): Response {
+  return Response.json({ error: `${resource} não encontrado(a)` }, { status: 404 })
 }
 
 export async function parseJsonBody(request: Request): Promise<
@@ -14,12 +18,12 @@ export async function parseJsonBody(request: Request): Promise<
     const data = (await request.json()) as unknown
     return { ok: true, data }
   } catch {
-    return { ok: false, response: invalidDataResponse() }
+    return { ok: false, response: errorResponse("Dados inválidos", 400) }
   }
 }
 
 export function invalidDataResponse(): Response {
-  return Response.json({ error: "Dados inválidos" }, { status: 400 })
+  return errorResponse("Dados inválidos", 400)
 }
 
 export function profileNotFoundResponse(status: 400 | 404): Response {

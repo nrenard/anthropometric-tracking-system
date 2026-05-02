@@ -52,6 +52,22 @@ describe("profile server actions", () => {
     expect(profiles.map((p) => p.name).sort()).toEqual(["Jane Doe", "John Roe"])
   })
 
+  it("getProfiles returns profiles sorted by createdAt descending (newest first)", async () => {
+    const first = await createProfile(profileData)
+    await new Promise((r) => setTimeout(r, 10))
+    const second = await createProfile({
+      ...profileData,
+      name: "John Roe",
+      email: "john@example.com",
+      sex: "M",
+    })
+
+    const profiles = await getProfiles()
+    expect(profiles).toHaveLength(2)
+    expect(profiles[0]!.id).toBe(second.id)
+    expect(profiles[1]!.id).toBe(first.id)
+  })
+
   it("getProfile returns null for unknown id", async () => {
     const result = await getProfile("000000000000000000000000")
     expect(result).toBeNull()

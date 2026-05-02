@@ -1,11 +1,10 @@
 import bcrypt from "bcrypt"
 import { env } from "@/lib/env"
 import { getSession } from "@/lib/session"
-
-const INVALID_CREDENTIALS = { error: "Credenciais inválidas" } as const
+import { errorResponse } from "../../profiles/_helpers"
 
 function unauthorized(): Response {
-  return Response.json(INVALID_CREDENTIALS, { status: 401 })
+  return errorResponse("Credenciais inválidas", 401)
 }
 
 export async function POST(request: Request): Promise<Response> {

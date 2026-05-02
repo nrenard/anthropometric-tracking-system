@@ -122,7 +122,7 @@ describe("GET /api/measurements/[id]", () => {
       context(new mongoose.Types.ObjectId().toString()),
     )
     expect(response.status).toBe(404)
-    expect(await response.json()).toEqual({ error: "Medição não encontrada" })
+    expect(await response.json()).toEqual({ error: "Medição não encontrado(a)" })
   })
 })
 
@@ -191,7 +191,7 @@ describe("PUT /api/measurements/[id]", () => {
       context(new mongoose.Types.ObjectId().toString()),
     )
     expect(response.status).toBe(404)
-    expect(await response.json()).toEqual({ error: "Medição não encontrada" })
+    expect(await response.json()).toEqual({ error: "Medição não encontrado(a)" })
   })
 })
 

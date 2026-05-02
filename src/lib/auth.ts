@@ -1,9 +1,15 @@
 import type { SessionData } from "@/lib/session"
+import { getSession } from "@/lib/session"
 import { ACTIVE_PROFILE_COOKIE } from "@/lib/cookies"
 
 export function requireAuth(session: SessionData): Response | null {
   if (session.isAuthenticated) return null
   return Response.json({ error: "Sessão expirada" }, { status: 401 })
+}
+
+export async function ensureAuthenticated(): Promise<Response | null> {
+  const session = await getSession()
+  return requireAuth(session)
 }
 
 export type ActiveProfileResult = { profileId: string } | { error: Response }

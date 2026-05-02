@@ -1,52 +1,40 @@
 import mongoose from "mongoose"
 import dbConnect from "@/lib/mongodb"
 import Measurement from "@/models/measurement"
-import { requireAuth } from "@/lib/auth"
-import { getSession } from "@/lib/session"
+import { ensureAuthenticated } from "@/lib/auth"
 import { measurementSchema } from "@/lib/validation"
+import { errorResponse, notFoundResponse } from "../../profiles/_helpers"
 
 type RouteContext = { params: Promise<{ id: string }> }
 
-const NOT_FOUND = { error: "Medição não encontrada" } as const
-const INVALID_DATA = { error: "Dados inválidos" } as const
-
 const measurementUpdateSchema = measurementSchema.partial()
 
-async function authGuard(): Promise<Response | null> {
-  const session = await getSession()
-  return requireAuth(session)
-}
-
-function invalidIdResponse(): Response {
-  return Response.json(NOT_FOUND, { status: 400 })
-}
-
 export async function GET(_request: Request, context: RouteContext): Promise<Response> {
-  const unauthorized = await authGuard()
+  const unauthorized = await ensureAuthenticated()
   if (unauthorized) return unauthorized
 
   const { id } = await context.params
-  if (!mongoose.isValidObjectId(id)) return invalidIdResponse()
+  if (!mongoose.isValidObjectId(id)) return errorResponse("Medição não encontrada", 400)
 
   await dbConnect()
   const doc = await Measurement.findById(id).lean()
-  if (!doc) return Response.json(NOT_FOUND, { status: 404 })
+  if (!doc) return notFoundResponse("Medição")
 
   return Response.json(doc, { status: 200 })
 }
 
 export async function PUT(request: Request, context: RouteContext): Promise<Response> {
-  const unauthorized = await authGuard()
+  const unauthorized = await ensureAuthenticated()
   if (unauthorized) return unauthorized
 
   const { id } = await context.params
-  if (!mongoose.isValidObjectId(id)) return invalidIdResponse()
+  if (!mongoose.isValidObjectId(id)) return errorResponse("Medição não encontrada", 400)
 
   let payload: unknown
   try {
     payload = await request.json()
   } catch {
-    return Response.json(INVALID_DATA, { status: 400 })
+    return errorResponse("Dados inválidos", 400)
   }
 
   if (payload && typeof payload === "object") {
@@ -55,7 +43,7 @@ export async function PUT(request: Request, context: RouteContext): Promise<Resp
 
   const parsed = measurementUpdateSchema.safeParse(payload)
   if (!parsed.success) {
-    return Response.json(INVALID_DATA, { status: 400 })
+    return errorResponse("Dados inválidos", 400)
   }
 
   await dbConnect()
@@ -64,16 +52,16 @@ export async function PUT(request: Request, context: RouteContext): Promise<Resp
     runValidators: true,
   }).lean()
 
-  if (!updated) return Response.json(NOT_FOUND, { status: 404 })
+  if (!updated) return notFoundResponse("Medição")
   return Response.json(updated, { status: 200 })
 }
 
 export async function DELETE(_request: Request, context: RouteContext): Promise<Response> {
-  const unauthorized = await authGuard()
+  const unauthorized = await ensureAuthenticated()
   if (unauthorized) return unauthorized
 
   const { id } = await context.params
-  if (!mongoose.isValidObjectId(id)) return invalidIdResponse()
+  if (!mongoose.isValidObjectId(id)) return errorResponse("Medição não encontrada", 400)
 
   await dbConnect()
   await Measurement.findByIdAndDelete(id)
