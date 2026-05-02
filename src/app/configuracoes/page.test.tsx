@@ -26,6 +26,10 @@ vi.mock("@/components/bottom-nav", () => ({
   BottomNav: () => null,
 }))
 
+vi.mock("@/components/ui/color-mode", () => ({
+  ColorModeButton: () => null,
+}))
+
 const sampleProfile = (overrides: Partial<ProfileDTO> = {}): ProfileDTO => ({
   id: "111111111111111111111111",
   name: "Jane Doe",
@@ -958,5 +962,140 @@ describe("Step 02 — Edit active profile form", () => {
         vi.unstubAllGlobals()
       }
     })
+  })
+})
+
+describe("Step 03 — Appearance, about, and logout", () => {
+  it('renders appearance section with "Tema escuro" label', async () => {
+    useActiveProfileMock.mockReturnValue({
+      profiles: [],
+      activeProfileId: null,
+      activeProfile: null,
+      isLoading: false,
+      setActiveProfileId: vi.fn(),
+      refreshProfiles: vi.fn(),
+    })
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText("Aparência")).toBeDefined()
+    })
+    expect(screen.getByText("Tema escuro")).toBeDefined()
+  })
+
+  it("renders about section with app name and version", async () => {
+    useActiveProfileMock.mockReturnValue({
+      profiles: [],
+      activeProfileId: null,
+      activeProfile: null,
+      isLoading: false,
+      setActiveProfileId: vi.fn(),
+      refreshProfiles: vi.fn(),
+    })
+    renderPage()
+    await waitFor(() => {
+      expect(screen.getByText("Sobre")).toBeDefined()
+    })
+    expect(
+      screen.getByText(
+        "Sistema de Acompanhamento Antropométrico",
+      ),
+    ).toBeDefined()
+    expect(screen.getByText("Versão 1.0.0")).toBeDefined()
+  })
+
+  it('renders "Sair" logout button', async () => {
+    useActiveProfileMock.mockReturnValue({
+      profiles: [],
+      activeProfileId: null,
+      activeProfile: null,
+      isLoading: false,
+      setActiveProfileId: vi.fn(),
+      refreshProfiles: vi.fn(),
+    })
+    renderPage()
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: /Sair/i }),
+      ).toBeDefined()
+    })
+  })
+
+  it("calls logout API and redirects on success", async () => {
+    useActiveProfileMock.mockReturnValue({
+      profiles: [],
+      activeProfileId: null,
+      activeProfile: null,
+      isLoading: false,
+      setActiveProfileId: vi.fn(),
+      refreshProfiles: vi.fn(),
+    })
+
+    const fetchMock = vi.fn(async () =>
+      new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+      }),
+    )
+    vi.stubGlobal("fetch", fetchMock)
+
+    try {
+      renderPage()
+      const logoutButton = await screen.findByRole("button", {
+        name: /Sair/i,
+      })
+      await act(async () => {
+        logoutButton.click()
+      })
+
+      await waitFor(() => {
+        expect(fetchMock).toHaveBeenCalledWith(
+          "/api/auth/logout",
+          expect.objectContaining({ method: "POST" }),
+        )
+      })
+
+      await waitFor(() => {
+        expect(pushMock).toHaveBeenCalledWith("/login")
+      })
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it("shows error toast on logout failure", async () => {
+    useActiveProfileMock.mockReturnValue({
+      profiles: [],
+      activeProfileId: null,
+      activeProfile: null,
+      isLoading: false,
+      setActiveProfileId: vi.fn(),
+      refreshProfiles: vi.fn(),
+    })
+
+    const fetchMock = vi.fn(async () =>
+      new Response(JSON.stringify({ error: "Erro" }), {
+        status: 500,
+      }),
+    )
+    vi.stubGlobal("fetch", fetchMock)
+
+    try {
+      renderPage()
+      const logoutButton = await screen.findByRole("button", {
+        name: /Sair/i,
+      })
+      await act(async () => {
+        logoutButton.click()
+      })
+
+      await waitFor(() => {
+        expect(toastCreateMock).toHaveBeenCalledWith(
+          expect.objectContaining({ type: "error" }),
+        )
+      })
+
+      expect(pushMock).not.toHaveBeenCalled()
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 })

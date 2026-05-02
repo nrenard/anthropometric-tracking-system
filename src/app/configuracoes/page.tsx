@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import { useRouter } from "next/navigation"
 import {
   Box,
   Button,
@@ -31,6 +32,7 @@ import { BottomNav } from "@/components/bottom-nav"
 import { toaster } from "@/components/ui/toaster"
 import { useActiveProfile } from "@/hooks/use-active-profile"
 import { clearActiveProfileId } from "@/lib/cookies"
+import { ColorModeButton } from "@/components/ui/color-mode"
 import type { ProfileDTO } from "@/app/actions/profile-actions"
 
 export default function ConfiguracoesPage() {
@@ -42,6 +44,8 @@ export default function ConfiguracoesPage() {
     setActiveProfileId,
     refreshProfiles,
   } = useActiveProfile()
+
+  const router = useRouter()
 
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [createName, setCreateName] = useState("")
@@ -312,6 +316,37 @@ export default function ConfiguracoesPage() {
     }
   }
 
+  async function handleLogout() {
+    abortRef.current?.abort()
+    abortRef.current = new AbortController()
+
+    try {
+      const res = await fetch("/api/auth/logout", {
+        method: "POST",
+        signal: abortRef.current.signal,
+      })
+
+      if (!res.ok) {
+        throw new Error("Erro ao sair")
+      }
+
+      router.push("/login")
+    } catch (err: unknown) {
+      if (
+        err instanceof DOMException &&
+        err.name === "AbortError"
+      )
+        return
+      toaster.create({
+        title:
+          err instanceof Error
+            ? err.message
+            : "Erro ao sair",
+        type: "error",
+      })
+    }
+  }
+
   function formatDate(iso: string): string {
     const date = new Date(iso)
     const day = String(date.getUTCDate()).padStart(2, "0")
@@ -556,6 +591,41 @@ export default function ConfiguracoesPage() {
           </Stack>
         </>
       )}
+
+      <Separator my={6} />
+
+      <Heading as="h2" size="md" mb={3}>
+        Aparência
+      </Heading>
+      <Flex
+        justify="space-between"
+        align="center"
+        mb={4}
+      >
+        <Text>Tema escuro</Text>
+        <ColorModeButton />
+      </Flex>
+
+      <Separator my={6} />
+
+      <Heading as="h2" size="md" mb={3}>
+        Sobre
+      </Heading>
+      <Text>Sistema de Acompanhamento Antropométrico</Text>
+      <Text fontSize="sm" color="fg.muted">
+        Versão 1.0.0
+      </Text>
+
+      <Separator my={6} />
+
+      <Button
+        w="full"
+        colorPalette="red"
+        variant="outline"
+        onClick={handleLogout}
+      >
+        Sair
+      </Button>
 
       <DialogRoot
         open={isCreateOpen}
