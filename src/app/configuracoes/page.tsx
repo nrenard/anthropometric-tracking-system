@@ -21,6 +21,7 @@ import {
   Input,
   RadioGroupRoot,
   RadioGroupItem,
+  Separator,
   Spinner,
   Stack,
   Text,
@@ -36,6 +37,7 @@ export default function ConfiguracoesPage() {
   const {
     profiles,
     activeProfileId,
+    activeProfile,
     isLoading,
     setActiveProfileId,
     refreshProfiles,
@@ -51,6 +53,15 @@ export default function ConfiguracoesPage() {
   >({})
   const [isCreating, setIsCreating] = useState(false)
 
+  const [editName, setEditName] = useState("")
+  const [editDateOfBirth, setEditDateOfBirth] = useState("")
+  const [editSex, setEditSex] = useState<"M" | "F" | "">("")
+  const [editDefaultHeight, setEditDefaultHeight] = useState("")
+  const [editErrors, setEditErrors] = useState<Record<string, string>>(
+    {},
+  )
+  const [isSaving, setIsSaving] = useState(false)
+
   const [deleteTarget, setDeleteTarget] = useState<ProfileDTO | null>(
     null,
   )
@@ -63,6 +74,26 @@ export default function ConfiguracoesPage() {
       abortRef.current?.abort()
     }
   }, [])
+
+  useEffect(() => {
+    if (activeProfile) {
+      setEditName(activeProfile.name)
+      setEditDateOfBirth(
+        activeProfile.dateOfBirth
+          ? activeProfile.dateOfBirth.slice(0, 10)
+          : "",
+      )
+      setEditSex(activeProfile.sex)
+      setEditDefaultHeight(
+        activeProfile.defaultHeight?.toString() ?? "",
+      )
+    } else {
+      setEditName("")
+      setEditDateOfBirth("")
+      setEditSex("")
+      setEditDefaultHeight("")
+    }
+  }, [activeProfile])
 
   function resetCreateForm() {
     setCreateName("")
@@ -186,6 +217,98 @@ export default function ConfiguracoesPage() {
       })
     } finally {
       setIsDeleting(false)
+    }
+  }
+
+  function validateEditForm(): boolean {
+    const errors: Record<string, string> = {}
+    if (!editName.trim()) {
+      errors.name = "Nome é obrigatório"
+    } else if (editName.trim().length < 2) {
+      errors.name = "Nome deve ter pelo menos 2 caracteres"
+    }
+    if (!editDateOfBirth) {
+      errors.dateOfBirth = "Data de nascimento é obrigatória"
+    } else {
+      const dob = new Date(editDateOfBirth + "T00:00:00")
+      if (dob >= new Date()) {
+        errors.dateOfBirth =
+          "Data de nascimento deve estar no passado"
+      } else {
+        const age = calculateAge(dob)
+        if (age < 1 || age > 120) {
+          errors.dateOfBirth = "Idade deve ser entre 1 e 120 anos"
+        }
+      }
+    }
+    if (!editSex) {
+      errors.sex = "Sexo é obrigatório"
+    }
+    if (
+      editDefaultHeight &&
+      Number(editDefaultHeight) <= 0
+    ) {
+      errors.defaultHeight = "Altura deve ser um número positivo"
+    }
+    setEditErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
+  async function handleSave() {
+    if (!activeProfileId || !activeProfile) return
+    if (!validateEditForm()) return
+
+    abortRef.current?.abort()
+    abortRef.current = new AbortController()
+
+    setIsSaving(true)
+    try {
+      const body: Record<string, unknown> = {
+        name: editName.trim(),
+        email: activeProfile.email,
+        dateOfBirth: new Date(
+          editDateOfBirth + "T00:00:00",
+        ).toISOString(),
+        sex: editSex,
+      }
+      if (editDefaultHeight) {
+        body.defaultHeight = Number(editDefaultHeight)
+      }
+
+      const res = await fetch(
+        `/api/profiles/${activeProfileId}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+          signal: abortRef.current.signal,
+        },
+      )
+
+      if (!res.ok) {
+        throw new Error("Erro ao salvar perfil")
+      }
+
+      toaster.create({
+        title: "Perfil salvo com sucesso",
+        type: "success",
+      })
+      await refreshProfiles()
+    } catch (err: unknown) {
+      if (
+        err instanceof DOMException &&
+        err.name === "AbortError"
+      )
+        return
+      toaster.create({
+        title:
+          err instanceof Error
+            ? err.message
+            : "Erro ao salvar perfil",
+        type: "error",
+      })
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -313,6 +436,124 @@ export default function ConfiguracoesPage() {
           >
             Novo Perfil
           </Button>
+        </>
+      )}
+
+      {activeProfile && (
+        <>
+          <Separator my={6} />
+          <Heading as="h2" size="md" mb={3}>
+            Editar Perfil Ativo
+          </Heading>
+          <Stack gap={3}>
+            <FieldRoot
+              required
+              invalid={!!editErrors.name}
+            >
+              <FieldLabel>Nome</FieldLabel>
+              <Input
+                value={editName}
+                onChange={(e) =>
+                  setEditName(e.target.value)
+                }
+              />
+              {editErrors.name && (
+                <FieldErrorText>
+                  {editErrors.name}
+                </FieldErrorText>
+              )}
+            </FieldRoot>
+
+            <FieldRoot>
+              <FieldLabel>E-mail</FieldLabel>
+              <Input
+                value={activeProfile.email}
+                readOnly
+              />
+            </FieldRoot>
+
+            <FieldRoot
+              required
+              invalid={!!editErrors.dateOfBirth}
+            >
+              <FieldLabel>
+                Data de Nascimento
+              </FieldLabel>
+              <Input
+                type="date"
+                value={editDateOfBirth}
+                onChange={(e) =>
+                  setEditDateOfBirth(e.target.value)
+                }
+              />
+              {editErrors.dateOfBirth && (
+                <FieldErrorText>
+                  {editErrors.dateOfBirth}
+                </FieldErrorText>
+              )}
+            </FieldRoot>
+
+            <FieldRoot
+              required
+              invalid={!!editErrors.sex}
+            >
+              <FieldLabel>Sexo</FieldLabel>
+              <RadioGroupRoot
+                value={editSex}
+                onValueChange={(details) =>
+                  setEditSex(
+                    details.value as "M" | "F",
+                  )
+                }
+              >
+                <HStack gap={4}>
+                  <RadioGroupItem value="F">
+                    Feminino
+                  </RadioGroupItem>
+                  <RadioGroupItem value="M">
+                    Masculino
+                  </RadioGroupItem>
+                </HStack>
+              </RadioGroupRoot>
+              {editErrors.sex && (
+                <FieldErrorText>
+                  {editErrors.sex}
+                </FieldErrorText>
+              )}
+            </FieldRoot>
+
+            <FieldRoot
+              invalid={!!editErrors.defaultHeight}
+            >
+              <FieldLabel>
+                Altura Padrão (cm)
+              </FieldLabel>
+              <Input
+                type="number"
+                value={editDefaultHeight}
+                onChange={(e) =>
+                  setEditDefaultHeight(
+                    e.target.value,
+                  )
+                }
+                placeholder="170"
+              />
+              {editErrors.defaultHeight && (
+                <FieldErrorText>
+                  {editErrors.defaultHeight}
+                </FieldErrorText>
+              )}
+            </FieldRoot>
+
+            <Button
+              colorPalette="green"
+              onClick={handleSave}
+              loading={isSaving}
+              type="button"
+            >
+              Salvar
+            </Button>
+          </Stack>
         </>
       )}
 
